@@ -9,6 +9,8 @@
 #include "../include/Shared_memory.h"
 #include "../include/Tables.h"
 
+//zamien ic wszystkie crr na perror
+
 int main() {
 	int X1, X2, X3, X4;
 	X1 = 3;
@@ -31,6 +33,7 @@ int main() {
 	}
 
 	shared_mem_flags->new_customers = true;
+	shared_mem_flags->table_size = table_size;
 
 	auto *table_array = static_cast<Table *>(mmap(nullptr, table_size, PROT_READ | PROT_WRITE, MAP_SHARED, shared, sizeof(SharedMem)));
 	if (table_array == MAP_FAILED) {
@@ -41,22 +44,18 @@ int main() {
 	int idx = 0;
 	for (int i = 0; i < X1; i++) {
 		sem_init(&table_array[idx].wolne_miejsca, 1, 1);
-		table_array[idx].rozmiar_grupy = 0;
 		idx++;
 	}
 	for (int i = 0; i < X2; i++) {
 		sem_init(&table_array[idx].wolne_miejsca, 1, 2);
-		table_array[idx].rozmiar_grupy = 0;
 		idx++;
 	}
 	for (int i = 0; i < X3; i++) {
 		sem_init(&table_array[idx].wolne_miejsca, 1, 3);
-		table_array[idx].rozmiar_grupy = 0;
 		idx++;
 	}
 	for (int i = 0; i < X4; i++) {
 		sem_init(&table_array[idx].wolne_miejsca, 1, 4);
-		table_array[idx].rozmiar_grupy = 0;
 		idx++;
 	}
 
