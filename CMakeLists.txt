@@ -1,15 +1,15 @@
-cmake_minimum_required(VERSION 4.0)
+cmake_minimum_required(VERSION 3.20)
 project(SO)
-set(CMAKE_CXX_STANDARD 26)
 
-add_executable(SO src/main.cpp
-        include/Shared_memory.h
-        include/Tables.h)
-add_executable(klient src/klient.cpp
-        include/zamowienie.h)
+set(CMAKE_CXX_STANDARD 23)
+
+include_directories(include)
+
+add_executable(klient src/klient.cpp src/sem_ops.cpp
+        src/Tables.cpp)
 add_executable(generator_klientow src/generator_klientow.cpp)
-add_executable(pracownik src/pracownik.cpp
-        include/zamowienie.h
-        include/Shared_memory.h
-        include/Tables.h)
+add_executable(pracownik src/pracownik.cpp src/sem_ops.cpp
+        src/Tables.cpp)
 add_executable(kierownik src/kierownik.cpp)
+add_executable(SO src/main.cpp
+        src/Tables.cpp)

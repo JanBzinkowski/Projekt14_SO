@@ -1,127 +1,114 @@
 #include <iostream>
 #include <unistd.h>
 #include <vector>
-#include <atomic>
-#include <sys/mman.h>
-#include <sys/stat.h>
+#include <sys/shm.h>
+#include <sys/sem.h>
 #include <sys/wait.h>
-#include <fcntl.h>
 #include "../include/Shared_memory.h"
 #include "../include/Tables.h"
 
 //zamien ic wszystkie crr na perror
 
 int main() {
-	int X1, X2, X3, X4;
-	X1 = 3;
-	X2 = 4;
-	X3 = 2;
-	X4 = 2;
+    key_t shm_key = ftok(".", 'S');
+    if (shm_key == -1) {
+        perror("ftok");
+        exit(1);
+    }
 
-	const int shared = shm_open("/shmem", O_CREAT | O_RDWR, 0666);
-	if (shared == -1) {
-		perror("shared memory open");
-		exit(1);
-	}
-	const size_t table_size = sizeof(Table) * (X1 + X2 + X3 + X4);
-	const size_t total_mem_size = table_size + sizeof(SharedMem);
-	ftruncate(shared, total_mem_size);
-	auto *shared_mem_flags = static_cast<SharedMem *>(mmap(nullptr, sizeof(SharedMem), PROT_READ | PROT_WRITE, MAP_SHARED, shared, 0));
-	if (shared_mem_flags == MAP_FAILED) {
-		perror("mmap shared_mem");
-		exit(1);
-	}
+    size_t table_size = sizeof(Table) * (table_count + X3 * 2);
+    if (X3 == 0) {
+        table_size += sizeof(Table);
+    }
+    size_t total_size = sizeof(SharedMem) + table_size;
 
-	shared_mem_flags->new_customers = true;
-	shared_mem_flags->table_size = table_size;
+    int shmid = shmget(shm_key, total_size, IPC_CREAT | 0666);
+    if (shmid == -1) {
+        perror("shmget");
+        exit(1);
+    }
 
-	auto *table_array = static_cast<Table *>(mmap(nullptr, table_size, PROT_READ | PROT_WRITE, MAP_SHARED, shared, sizeof(SharedMem)));
-	if (table_array == MAP_FAILED) {
-		perror("mmap tables");
-		exit(1);
-	}
+    void *base = shmat(shmid, nullptr, 0);
+    if (base == (void *) -1) {
+        perror("shmat");
+        exit(1);
+    }
 
-	int idx = 0;
-	for (int i = 0; i < X1; i++) {
-		sem_init(&table_array[idx].wolne_miejsca, 1, 1);
-		idx++;
-	}
-	for (int i = 0; i < X2; i++) {
-		sem_init(&table_array[idx].wolne_miejsca, 1, 2);
-		idx++;
-	}
-	for (int i = 0; i < X3; i++) {
-		sem_init(&table_array[idx].wolne_miejsca, 1, 3);
-		idx++;
-	}
-	for (int i = 0; i < X4; i++) {
-		sem_init(&table_array[idx].wolne_miejsca, 1, 4);
-		idx++;
-	}
+    auto *shared_mem_flags = (SharedMem *) base;
+    auto *table_array = (Table *) ((char *) base + sizeof(SharedMem));
 
-	std::vector<pid_t> pids;
+    shared_mem_flags->new_customers = true;
+    shared_mem_flags->tables_array_size = table_size;
 
-	pid_t pid = fork();
-	if (pid < 0) {
-		perror("fork");
-		exit(1);
-	}
-	if (pid == 0) {
-		execl("./pracownik", "pracownik", NULL);
-		perror("exec");
-		exit(1);
-	}
+    key_t sem_key = ftok(".", 'M');
+    if (sem_key == -1) {
+        perror("ftok sem");
+        exit(1);
+    }
 
-	pids.push_back(pid);
+    int semid = semget(sem_key, table_count, IPC_CREAT | 0666);
+    if (semid == -1) {
+        perror("semget");
+        exit(1);
+    }
 
-	pid = fork();
-	if (pid < 0) {
-		perror("fork");
-		exit(1);
-	}
-	if (pid == 0) {
-		execl("./generator_klientow", "generator_klientow", NULL);
-		perror("exec");
-		exit(1);
-	}
+    int idx = 0;
+    for (int i = 0; i < table_count; i++)
+        semctl(semid, idx++, SETVAL, table_array[i].max_osob);
 
-	pids.push_back(pid);
+    std::vector<pid_t> pids;
 
-	pid = fork();
-	if (pid < 0) {
-		perror("fork");
-		exit(1);
-	}
-	if (pid == 0) {
-		execl("./kierownik", "kierownik", NULL);
-		perror("exec");
-		exit(1);
-	}
+    pid_t pid = fork();
+    if (pid < 0) {
+        perror("fork");
+        exit(1);
+    }
+    if (pid == 0) {
+        execl("./pracownik", "pracownik", NULL);
+        perror("exec");
+        exit(1);
+    }
+    pids.push_back(pid);
 
-	pids.push_back(pid);
+    pid = fork();
+    if (pid < 0) {
+        perror("fork");
+        exit(1);
+    }
+    if (pid == 0) {
+        execl("./generator_klientow", "generator_klientow", NULL);
+        perror("exec");
+        exit(1);
+    }
+    pids.push_back(pid);
 
-	pid = fork();
-	if (pid < 0) {
-		perror("fork");
-		exit(1);
-	}
-	if (pid == 0) {
-		execl("./szef", "szef", NULL);
-		perror("exec");
-		exit(1);
-	}
+    pid = fork();
+    if (pid < 0) {
+        perror("fork");
+        exit(1);
+    }
+    if (pid == 0) {
+        execl("./kierownik", "kierownik", NULL);
+        perror("exec");
+        exit(1);
+    }
+    pids.push_back(pid);
 
-	pids.push_back(pid);
+    for (const auto chpid: pids)
+        waitpid(chpid, nullptr, 0);
 
-	for (const auto chpid: pids) {
-		waitpid(chpid, nullptr, 0);
-	}
+    if (shmdt(base) == -1) {
+        perror("shmdt");
+        exit(1);
+    }
+    if (shmctl(shmid, IPC_RMID, nullptr) == -1) {
+        perror("shmctl");
+        exit(1);
+    }
+    if (semctl(semid, 0, IPC_RMID) == -1) {
+        perror("semctl");
+        exit(1);
+    }
 
-	for (int i = 0; i < X1 + X2 + X3 + X4; i++) {
-		sem_destroy(&table_array[i].wolne_miejsca);
-	}
-	munmap(shared_mem_flags, sizeof(SharedMem));
-	munmap(table_array, sizeof(Table) * (X1 + X2 + X3 + X4));
-	close(shared);
-	shm_unlink("/shmem");
+    return 0;
 }

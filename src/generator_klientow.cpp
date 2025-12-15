@@ -2,8 +2,6 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/mman.h>
-#include <unistd.h>
-#include <ctime>
 #include <csignal>
 
 #include "../include/Shared_memory.h"
@@ -28,7 +26,7 @@ int main() {
 		}
 		else if (pid == 0) {
 			execl("./klient", "klient", NULL);
-			perror("execl failed");
+			perror("execl");
 			exit(1);
 		}
 		else {

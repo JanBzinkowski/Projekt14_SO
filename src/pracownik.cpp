@@ -1,94 +1,97 @@
 #include <iostream>
 #include <unistd.h>
-#include <semaphore.h>
-#include <fcntl.h>
-#include <atomic>
-#include <fstream>
-#include <sys/mman.h>
-#include <sys/stat.h>
-
+#include <sys/shm.h>
+#include <sys/sem.h>
+#include <sys/msg.h>
+#include <cstdlib>
 #include "../include/zamowienie.h"
 #include "../include/Shared_memory.h"
 #include "../include/Tables.h"
+#include "../include/sem_ops.h"
 
-//obsługa sygnał 1-3
+int shmid, semid, msgid_zam, msgid_zwrot;
 
-int shared;
-sem_t *kolejka;
-sem_t *klient;
-int fifo_zwrot;
-int fifo_zamowienie;
+void zamowienie(SharedMem *shared_mem_flags, Table *table_array) {
+    msg_zamowienie msg;
+    if (msgrcv(msgid_zam, &msg, sizeof(Zamowienie), 0, 0) == -1) {
+        perror("msgrcv");
+        exit(1);
+    }
 
-void zamowienie(SharedMem *shared_mem_flags) {
-	Zamowienie zam;
-	int fd = open("../IPC/zamowienie", O_RDONLY);
-	read(fd, &zam, sizeof(Zamowienie));
-	close(fd);
+    key_t sem_key = ftok(".", 'M');
+    int table_sem_id = semget(sem_key, table_count, 0666);
+    if (table_sem_id == -1) {
+        perror("semget");
+        exit(1);
+    }
 
-	auto *table_array = static_cast<Table *>(mmap(nullptr, shared_mem_flags->tables_array_size, PROT_READ | PROT_WRITE, MAP_SHARED, shared, sizeof(SharedMem)));
+    int index = 0;
+    for (; index < table_count; index++) {
+        int free = semctl(table_sem_id, index, GETVAL);
+        if (free >= msg.zam.liczba_osob &&
+            (table_array[index].rozmiar_grupy == 0 || table_array[index].rozmiar_grupy == msg.zam.liczba_osob)) {
+            for (int i = 0; i < msg.zam.liczba_osob; i++)
+                sem_wait(table_sem_id, index);
+            break;
+        }
+    }
 
-	int array_size = shared_mem_flags->tables_array_size / sizeof(Table);
-	int index = 0;
-	for (index; index < array_size; index++) {
-		int free;
-		sem_getvalue(&table_array[index].wolne_miejsca, &free);
-		if (free >= zam.liczba_osob && (table_array[index].rozmiar_grupy == 0 || table_array[index].rozmiar_grupy == zam.liczba_osob)) {
-			for (int i = 0; i < zam.liczba_osob; i++) {
-				sem_wait(&table_array[index].wolne_miejsca);
-			}
-			break;
-		}
-	}
-	ZamowienieZwrot zwrot;
-	if (index == array_size) {
-		zwrot.nr_stolika = -1;
-	}
-	else {
-		zwrot.nr_stolika = index;
-	}
+    msg_zwrot zw;
+    zw.mtype = ZAMOWIENIE_ZWROT;
+    zw.zwrot.nr_stolika = (index == table_count) ? -1 : index;
 
-	fd = open("../IPC/zamowienie_zwrot", O_WRONLY);
-	write(fd, &zwrot, sizeof(ZamowienieZwrot));
-	close(fd);
+    if (msgsnd(msgid_zwrot, &zw, sizeof(ZamowienieZwrot), 0) == -1) {
+        perror("msgsnd zwrot");
+        exit(1);
+    }
 }
 
 int main() {
-	fifo_zwrot = mkfifo("../IPC/zamowienie_zwrot", 0666);
-	if (fifo_zwrot == -1) {
-		std::cerr << "Pracownik nie mogl utwozyc FIFO. Proces nr.: " << getpid() << std::endl;
-	}
+    key_t shm_key = ftok(".", 'S');
+    shmid = shmget(shm_key, sizeof(SharedMem) + sizeof(Table) * table_count, 0666);
+    if (shmid == -1) {
+        perror("shmget");
+        exit(1);
+    }
 
-	fifo_zamowienie = mkfifo("../IPC/zamowienie", 0666);
-	if (fifo_zamowienie == -1) {
-		std::cerr << "Pracownik nie mogl utwozyc FIFO. Proces nr.: " << getpid() << std::endl;
-	}
+    void *base = shmat(shmid, nullptr, 0);
+    if (base == (void *) -1) {
+        perror("shmat");
+        exit(1);
+    }
 
-	shared = shm_open("/shmem", O_RDWR, 0666);
-	if (shared == -1) {
-		perror("shared memory open");
-		exit(1);
-	}
-	auto *shared_mem_flags = static_cast<SharedMem *>(mmap(nullptr, sizeof(SharedMem), PROT_READ, MAP_SHARED, shared, 0));
+    auto *shared_mem_flags = (SharedMem *) base;
+    auto *table_array = (Table *) ((char *) base + sizeof(SharedMem));
 
-	kolejka = sem_open("kolejka_sem", O_CREAT | O_EXCL, 0666, 1);
-	if (kolejka == SEM_FAILED) {
-		std::cerr << "Nie mozna otworzyc semafora kolejki." << std::endl;
-	}
+    key_t sem_key = ftok(".", 'K');
+    semid = semget(sem_key, 2, IPC_CREAT | 0666);
+    if (semid == -1) {
+        perror("semget");
+        exit(1);
+    }
 
-	klient = sem_open("klient_czeka_sem", O_CREAT | O_EXCL, 0666, 0);
-	if (klient == SEM_FAILED) {
-		std::cerr << "Nie mozna otworzyc semafora informacji o oczekiwaniu klienta na zamowienie." << std::endl;
-	}
+    semctl(semid, 0, SETVAL, 1);
+    semctl(semid, 1, SETVAL, 0);
 
-	while (shared_mem_flags->end_program == false) {
-		sem_wait(klient);
-		zamowienie(shared_mem_flags);
-	}
+    key_t msg_key_zam = ftok(".", 'Z');
+    msgid_zam = msgget(msg_key_zam, IPC_CREAT | 0666);
+    if (msgid_zam == -1) {
+        perror("msgget zam");
+        exit(1);
+    }
 
-	sem_close(kolejka);
-	sem_close(klient);
-	sem_unlink("kolejka_sem");
-	sem_unlink("klient_czeka_sem");
-	unlink("../IPC/zamowienie");
-	unlink("../IPC/zamowienie_zwrot");
+    key_t msg_key_zw = ftok(".", 'W');
+    msgid_zwrot = msgget(msg_key_zw, IPC_CREAT | 0666);
+    if (msgid_zwrot == -1) {
+        perror("msgget zwrot");
+        exit(1);
+    }
+
+    while (!shared_mem_flags->end_program) {
+        sem_wait(semid, 1);
+        zamowienie(shared_mem_flags, table_array);
+    }
+
+    shmdt(base);
+    return 0;
 }
