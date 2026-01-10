@@ -1,25 +1,24 @@
 #include <iostream>
 #include <unistd.h>
-#include <fcntl.h>
-#include <sys/mman.h>
 #include <csignal>
 
+#include "../include/wrappers.h"
 #include "../include/Shared_memory.h"
 
 int main() {
 	srand(time(nullptr));
-	int shared = shm_open("/shmem", O_RDWR, 0666);
-	if (shared == -1) {
-		perror("shared memory open");
-		exit(1);
+	key_t shm_key = ftok(".", 'S');
+	if (shm_key == -1) {
+		ipc_die("ftok");
 	}
 
-	auto *shared_mem_flags = static_cast<SharedMem *>(mmap(nullptr, sizeof(SharedMem), PROT_READ, MAP_SHARED, shared, 0));
+	int shmid = shm_create(shm_key, sizeof(SharedMem), 0);
+	auto *shared_mem_flags = static_cast<SharedMem *>(shm_attach(shmid, 0));
 
 	signal(SIGCHLD, SIG_IGN);
 	int pid;
 
-	while (shared_mem_flags->end_program == false) {
+	while (!shared_mem_flags->end_program) {
 		pid = fork();
 		if (pid == -1) {
 			perror("fork, generator klientow");
@@ -30,7 +29,9 @@ int main() {
 			exit(1);
 		}
 		else {
-			sleep(rand() % 100);
+			sleep(rand() % 31);
 		}
 	}
+
+	shm_detach(shared_mem_flags);
 }

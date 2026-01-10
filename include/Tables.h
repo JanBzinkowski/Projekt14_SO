@@ -12,6 +12,7 @@ extern int table_count;
 struct Table {
 	int8_t max_osob = 0;
 	int8_t rozmiar_grupy = 0;
+	bool zarezerwowany = false;
 };
 
 #endif //SO_TABLES_H

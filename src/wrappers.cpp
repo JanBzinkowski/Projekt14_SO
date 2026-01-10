@@ -1,0 +1,92 @@
+#include "../include/wrappers.h"
+#include <atomic>
+
+void ipc_die(const char *msg) {
+	perror(msg);
+	exit(EXIT_FAILURE);
+}
+
+int shm_create(key_t key, size_t size, int flags) {
+	int shmid = shmget(key, size, flags);
+	if (shmid == -1)
+		ipc_die("shmget");
+	return shmid;
+}
+
+void *shm_attach(int shmid, int flags) {
+	void *addr = shmat(shmid, nullptr, flags);
+	if (addr == (void *) -1)
+		ipc_die("shmat");
+	return addr;
+}
+
+void shm_detach(void *addr) {
+	if (shmdt(addr) == -1)
+		ipc_die("shmdt");
+}
+
+void shm_remove(int shmid) {
+	if (shmctl(shmid, IPC_RMID, nullptr) == -1)
+		ipc_die("shmctl(IPC_RMID)");
+}
+
+int sem_create(key_t key, int nsems, int flags) {
+	int semid = semget(key, nsems, flags);
+	if (semid == -1)
+		ipc_die("semget");
+	return semid;
+}
+
+void sem_set(int semid, int semnum, int val) {
+	semun arg;
+	arg.val = val;
+	if (semctl(semid, semnum, SETVAL, arg) == -1)
+		ipc_die("semctl SETVAL");
+}
+
+void sem_op(int semid, int semnum, int op) {
+	struct sembuf sb{
+		sb.sem_num = static_cast<unsigned short>(semnum),
+		sb.sem_op = static_cast<short>(op),
+		sb.sem_flg = 0
+	};
+
+	if (semop(semid, &sb, 1) == -1)
+		ipc_die("semop");
+}
+
+void sem_remove(int semid) {
+	if (semctl(semid, 0, IPC_RMID) == -1)
+		ipc_die("semctl IPC_RMID");
+}
+
+int sem_getval(int semid, int semnum) {
+	int val = semctl(semid, semnum, GETVAL);
+	if (val == -1)
+		ipc_die("semctl GETVAL");
+	return val;
+}
+
+int msg_create(key_t key, int flags) {
+	int msgid = msgget(key, flags);
+	if (msgid == -1)
+		ipc_die("msgget");
+	return msgid;
+}
+
+void msg_send(int msgid, void *msg, size_t size, int flags) {
+	if (msgsnd(msgid, msg, size, flags) == -1)
+		ipc_die("msgsnd");
+}
+
+ssize_t msg_recv(int msgid, void *msg, size_t size, long type, int flags) {
+	ssize_t r = msgrcv(msgid, msg, size, type, flags);
+	if (r == -1)
+		ipc_die("msgrcv");
+	return r;
+}
+
+void msg_remove(int msgid) {
+	if (msgctl(msgid, IPC_RMID, nullptr) == -1)
+		ipc_die("msgctl IPC_RMID");
+}

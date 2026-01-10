@@ -5,11 +5,12 @@ set(CMAKE_CXX_STANDARD 23)
 
 include_directories(include)
 
-add_executable(klient src/klient.cpp src/sem_ops.cpp
+add_executable(klient src/klient.cpp src/wrappers.cpp
         src/Tables.cpp)
-add_executable(generator_klientow src/generator_klientow.cpp)
-add_executable(pracownik src/pracownik.cpp src/sem_ops.cpp
+add_executable(generator_klientow src/generator_klientow.cpp src/wrappers.cpp)
+add_executable(pracownik src/pracownik.cpp src/wrappers.cpp
         src/Tables.cpp)
-add_executable(kierownik src/kierownik.cpp)
+add_executable(kierownik src/kierownik.cpp src/wrappers.cpp)
 add_executable(SO src/main.cpp
-        src/Tables.cpp)
+        src/Tables.cpp src/wrappers.cpp)
+add_executable(Logger src/Logger.cpp)
