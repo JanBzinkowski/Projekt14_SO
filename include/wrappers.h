@@ -7,6 +7,7 @@
 #include <sys/shm.h>
 #include <sys/msg.h>
 #include <sys/sem.h>
+#include <string>
 
 
 struct semun {
@@ -52,5 +53,7 @@ void msg_send(int msgid, void *msg, size_t size, int flags);
 ssize_t msg_recv(int msgid, void *msg, size_t size, long type, int flags);
 
 void msg_remove(int msgid);
+
+void wyslij_log(int logger_id, const std::string &tekst);
 
 #endif //SO_SEM_OPS_H

@@ -23,15 +23,6 @@ int main() {
 
 	int msgid = msg_create(msg_key, 0666 | IPC_CREAT);
 
-	key_t sem_key = ftok(".", 'LS');
-	if (sem_key == -1) {
-		perror("ftok sem");
-		return 1;
-	}
-
-	int semid = sem_create(sem_key, 1, 0666 | IPC_CREAT);
-	sem_set(semid, 0, 0);
-
 	std::ofstream log_file("../log.txt", std::ios::app);
 	if (!log_file.is_open()) {
 		std::cerr << "Nie można otworzyć pliku ../log.txt" << std::endl;
@@ -41,8 +32,6 @@ int main() {
 	std::cout << "Logger uruchomiony. Odbieranie wiadomości..." << std::endl;
 
 	while (!shared_mem_flags->end_program) {
-		sem_op(semid, 0, -1);
-
 		MsgText msg{};
 		if (msg_recv(msgid, &msg, sizeof(msg.text), 0, 0) > 0) {
 			std::cout << "[mtype=" << msg.mtype << "] " << msg.text << std::endl;

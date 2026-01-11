@@ -1,5 +1,6 @@
 #include "../include/wrappers.h"
 #include <atomic>
+#include <cstring>
 
 void ipc_die(const char *msg) {
 	perror(msg);
@@ -89,4 +90,16 @@ ssize_t msg_recv(int msgid, void *msg, size_t size, long type, int flags) {
 void msg_remove(int msgid) {
 	if (msgctl(msgid, IPC_RMID, nullptr) == -1)
 		ipc_die("msgctl IPC_RMID");
+}
+
+void wyslij_log(int logger_id, const std::string &tekst) {
+	if (tekst.empty())
+		return;
+
+	MsgText msg{};
+	msg.mtype = 1;
+	strncpy(msg.text, tekst.c_str(), sizeof(msg.text) - 1);
+	msg.text[sizeof(msg.text) - 1] = '\0';
+
+	msg_send(logger_id, &msg, sizeof(msg.text), 0);
 }

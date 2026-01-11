@@ -1,7 +1,6 @@
 #include <iostream>
 #include <unistd.h>
 #include <csignal>
-
 #include "../include/wrappers.h"
 #include "../include/Shared_memory.h"
 
