@@ -16,7 +16,7 @@ void opuszczenie_lokalu(ZamowienieZwrot *zwrot, Zamowienie *zam) {
         int table_sem_id = sem_create(sem_key, table_count, 0666);
         sem_op(table_sem_id, zwrot->nr_stolika, zam->liczba_osob);
     }
-    wyslij_log(msgid_logger, "Klient opuscil restauracje, stolik nr: " + (zwrot? "brak zamowienia" : std::to_string(zwrot->nr_stolika)) + ", rozmiar grupy: " + std::to_string(zam->liczba_osob));
+    wyslij_log(msgid_logger, "Klient opuscil restauracje, stolik nr: " + (zwrot ? "brak zamowienia" : std::to_string(zwrot->nr_stolika)) + ", rozmiar grupy: " + std::to_string(zam->liczba_osob));
 }
 
 void zwrot_naczyn(ZamowienieZwrot *zwrot) {
@@ -67,7 +67,7 @@ int main() {
     Zamowienie zam{};
     zam.liczba_osob = rand() % 4 + 1;
 
-    if (0.05<rand()/RAND_MAX) {
+    if (0.05 < rand() / RAND_MAX) {
         zamowienie(&zam, nullptr);
     }
 
