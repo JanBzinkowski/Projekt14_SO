@@ -42,7 +42,10 @@ int main() {
 
 	std::cout << "Logger zakończony." << std::endl;
 	log_file.close();
+
 	shm_detach(shared_mem_flags);
+
+	msg_remove(msgid);
 
 	return 0;
 }

@@ -7,7 +7,45 @@
 #include "../include/Shared_memory.h"
 #include "../include/Tables.h"
 
+std::vector<pid_t> pids;
+
+void handler(int sig) {
+    if (sig == SIGINT) {
+        for (pid_t pid: pids) {
+            kill(pid, SIGINT);
+        }
+    }
+    else if (sig == SIGSTOP) {
+        for (pid_t pid: pids) {
+            kill(pid, SIGSTOP);
+        }
+    }
+    else if (sig == SIGRTMIN) {
+        for (pid_t pid: pids) {
+            kill(pid, SIGRTMIN);
+        }
+    }
+    else if (sig == SIGRTMIN + 1) {
+        kill(pids[2], SIGRTMIN + 1);
+    }
+    else if (sig == SIGRTMIN + 2) {
+        kill(pids[2], SIGRTMIN + 2);
+    }
+    else if (sig == SIGRTMIN + 3) {
+        for (pid_t pid: pids) {
+            kill(pid, SIGRTMIN + 3);
+        }
+    }
+}
+
 int main() {
+    signal(SIGINT, handler);
+    signal(SIGSTOP, handler);
+    signal(SIGRTMIN, handler);
+    signal(SIGRTMIN + 1, handler);
+    signal(SIGRTMIN + 2, handler);
+    signal(SIGRTMIN + 3, handler);
+
     key_t shm_key = ftok(".", 'S');
     if (shm_key == -1) {
         ipc_die("ftok");
@@ -38,9 +76,25 @@ int main() {
     for (int i = 0; i < table_count; i++)
         sem_set(semid, i, table_array[i].max_osob);
 
-    std::vector<pid_t> pids;
-
     pid_t pid = fork();
+    if (pid < 0)
+        ipc_die("fork");
+    if (pid == 0) {
+        execl("./logger", "logger", NULL);
+        ipc_die("exec logger");
+    }
+    pids.push_back(pid);
+
+    pid = fork();
+    if (pid < 0)
+        ipc_die("fork");
+    if (pid == 0) {
+        execl("./kasjer", "kasjer", NULL);
+        ipc_die("exec kasjer");
+    }
+    pids.push_back(pid);
+
+    pid = fork();
     if (pid < 0)
         ipc_die("fork");
     if (pid == 0) {
@@ -70,9 +124,8 @@ int main() {
     for (const auto chpid: pids)
         waitpid(chpid, nullptr, 0);
 
-    shm_detach(base);
+    shm_detach(shared_mem_flags);
+    shm_detach(table_array);
     shm_remove(shmid);
-    sem_remove(semid);
-
     return 0;
 }

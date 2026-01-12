@@ -5,6 +5,8 @@
 #define ZAMOWIENIE_PRACOWNIK 2
 #define ZAMOWIENIE_ZWROT 3
 
+//Liczba pozycji menu napojów/posiłków (nr. pozycji menu odpowiada czasowi spozywania posilku/napoju)
+
 #define MENU_NAPOJE 4
 #define MENU_POSILKI 4
 

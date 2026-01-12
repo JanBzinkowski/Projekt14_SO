@@ -38,13 +38,13 @@ int main() {
 	auto *shared_mem_flags = reinterpret_cast<SharedMem *>(base);
 
 	key_t msg_key_zam = ftok(".", 'Z');
-	msgid_zam = msg_create(msg_key_zam, IPC_CREAT | 0666);
+	msgid_zam = msg_create(msg_key_zam, 0666);
 
 	key_t msg_key_log = ftok(".", 'L');
 	msgid_logger = msg_create(msg_key_log, 0666);
 
 	key_t sem_key = ftok(".", 'WZ');
-	semid = sem_create(sem_key, 1, IPC_CREAT | 0666);
+	semid = sem_create(sem_key, 1, 0666);
 
 	wyslij_log(msgid_logger, "Pracownik rozpoczyna prace");
 
@@ -54,4 +54,7 @@ int main() {
 	}
 
 	wyslij_log(msgid_logger, "Pracownik konczy prace");
+
+	shm_detach(shared_mem_flags);
+	return 0;
 }

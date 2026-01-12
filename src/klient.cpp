@@ -97,5 +97,6 @@ int main() {
     opuszczenie_lokalu(&zwrot, &zam);
 
     sleep(1);
+
     return 0;
 }

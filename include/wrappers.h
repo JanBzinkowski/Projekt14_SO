@@ -16,11 +16,6 @@ struct semun {
 	unsigned short *array;
 };
 
-struct MyMsg {
-	long mtype;
-	int data;
-};
-
 struct MsgText {
 	long mtype;
 	char text[256];

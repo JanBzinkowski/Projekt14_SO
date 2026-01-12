@@ -70,7 +70,7 @@ int main() {
     msgid_logger = msg_create(msg_key_log, 0666);
 
     key_t sem_key_prac = ftok(".", 'WZ');
-    semid_prac = sem_create(sem_key_prac, 1, 0666);
+    semid_prac = sem_create(sem_key_prac, 1, 0666 | IPC_CREAT);
 
     wyslij_log(msgid_logger, "Kasjer rozpoczyna prace");
 
@@ -81,6 +81,10 @@ int main() {
 
     wyslij_log(msgid_logger, "Kasjer konczy prace");
 
-    shm_detach(base);
+    shm_detach(shared_mem_flags);
+    shm_detach(table_array);
+
+    sem_remove(semid);
+    sem_remove(semid_prac);
     return 0;
 }
