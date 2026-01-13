@@ -2,17 +2,81 @@
 #include <unistd.h>
 #include <cstdlib>
 #include <cstring>
+
+#include "../../../../../usr/include/c++/11/csignal"
 #include "../include/zamowienie.h"
 #include "../include/Shared_memory.h"
 #include "../include/Tables.h"
 #include "../include/wrappers.h"
 
-int shmid, semid, msgid_zam;
-int msgid_logger;
+int shmid, semid, semid_gk, msgid_zam, msgid_logger, msgid_kierownik;
+
+volatile sig_atomic_t sig_flag = 0;
+volatile sig_atomic_t fire_sig_flag = 0;
+
+void handler(int sig) {
+	if (sig == SIGRTMIN || sig == SIGINT) {
+		fire_sig_flag = 1;
+	}
+	if (sig == SIGRTMIN + 1) {
+		sig_flag = 1;
+	}
+	if (sig == SIGRTMIN + 2) {
+		sig_flag = 2;
+	}
+}
+
+void rezerwacje(KierownikRezerwacja &rezerwacja, Table *table, SharedMem *mem_flags) {
+	for (int i = 0; i < rezerwacja.reserved.x1 && i < X1; i++)
+		table[i].zarezerwowany = true;
+
+	for (int i = X1; i < X1 + rezerwacja.reserved.x2 && i < X1 + X2; i++)
+		table[i].zarezerwowany = true;
+
+	if (!mem_flags->new_tables) {
+		int start3 = X1 + X2;
+		for (int i = start3; i < start3 + rezerwacja.reserved.x3 && i < start3 + X3; i++)
+			table[i].zarezerwowany = true;
+
+		int start4 = X1 + X2 + X3;
+		for (int i = start4; i < start4 + rezerwacja.reserved.x4 && i < start4 + X4; i++)
+			table[i].zarezerwowany = true;
+	}
+	else {
+		int old3 = X3 / 2;
+		int start3_old = X1 + X2;
+		for (int i = start3_old; i < start3_old + std::min(rezerwacja.reserved.x3, old3); i++)
+			table[i].zarezerwowany = true;
+
+		int start4 = start3_old + old3;
+		for (int i = start4; i < start4 + std::min(rezerwacja.reserved.x4, X4); i++)
+			table[i].zarezerwowany = true;
+
+		int new3_count = old3 + (X3 % 2);
+		int start3_new = start4 + X4;
+		for (int i = start3_new; i < start3_new + std::min(rezerwacja.reserved.x3 - old3, new3_count); i++)
+			table[i].zarezerwowany = true;
+	}
+}
+
+
+void exra(Table * &table) {
+	if (X3 == 0) {
+		X3 = 1;
+	}
+	for (int i = table_count; i < table_count + X3; i++) {
+		table[i].max_osob = 3;
+		table[i].zarezerwowany = false;
+		table[i].rozmiar_grupy = 0;
+	}
+	table_count += X3;
+}
 
 void zamowienie() {
 	msg_pracownik msg{};
-	msg_recv(msgid_zam, &msg, sizeof(ZamowieniePracownik), ZAMOWIENIE_PRACOWNIK, 0);
+	if (msg_recv(msgid_zam, &msg, sizeof(Zamowienie), ZAMOWIENIE, 0, &sig_flag) == -1) {
+		return;
+	}
 
 	wyslij_log(msgid_logger, "Pracownik rozpoczyna obsluge klienta. Przydzielony stolik: stolik nr. " + std::to_string(msg.zwrot.nr_stolika));
 
@@ -31,30 +95,44 @@ void zamowienie() {
 }
 
 int main() {
-	key_t shm_key = ftok(".", 'S');
-	shmid = shm_create(shm_key, sizeof(SharedMem) + sizeof(Table) * table_count, 0666);
+	shmid = shm_create(ftok(".", 'S'), sizeof(SharedMem) + sizeof(Table) * table_count, 0666);
 	auto *base = static_cast<char *>(shm_attach(shmid, 0));
-
 	auto *shared_mem_flags = reinterpret_cast<SharedMem *>(base);
+	auto *table_array = reinterpret_cast<Table *>(base + sizeof(SharedMem));
 
-	key_t msg_key_zam = ftok(".", 'Z');
-	msgid_zam = msg_create(msg_key_zam, 0666);
-
-	key_t msg_key_log = ftok(".", 'L');
-	msgid_logger = msg_create(msg_key_log, 0666);
-
-	key_t sem_key = ftok(".", 'WZ');
-	semid = sem_create(sem_key, 1, 0666);
+	msgid_zam = msg_create(ftok(".", 'Z'), 0666);
+	msgid_logger = msg_create(ftok(".", 'L'), 0666);
+	semid = sem_create(ftok(".", 'W'), 1, 0666);
+	semid_gk = sem_create(ftok(".", 'G'), 2, 0666);
+	msgid_kierownik = msg_create(ftok(".", 'I'), 0666 | IPC_CREAT);
 
 	wyslij_log(msgid_logger, "Pracownik rozpoczyna prace");
 
-	while (!shared_mem_flags->end_program) {
+	while (!shared_mem_flags->end_program && !shared_mem_flags->all_customers_out) {
 		sem_op(semid, 0, -1);
+		if (fire_sig_flag == 1) {
+			wyslij_log(msgid_logger, "Pracownik czekna na ewakuacje klientow");
+			break;
+		}
+		else if (sig_flag == 1) {
+			KierownikStoly st{};
+			msg_recv(msgid_kierownik, &st, sizeof(KierownikStoly), EXTRA, 0, &fire_sig_flag);
+		}
+		else if (sig_flag == 2) {
+			KierownikRezerwacja re{};
+			msg_recv(msgid_kierownik, &re, sizeof(KierownikStoly), REZERWACJE, 0, &fire_sig_flag);
+			rezerwacje(re, table_array, shared_mem_flags);
+		}
+
 		zamowienie();
 	}
+
+	sem_op(semid_gk, 1, -1);
 
 	wyslij_log(msgid_logger, "Pracownik konczy prace");
 
 	shm_detach(shared_mem_flags);
+	shm_detach(base);
+	shm_detach(table_array);
 	return 0;
 }

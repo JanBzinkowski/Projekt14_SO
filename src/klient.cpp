@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <ctime>
 #include <cstring>
+#include <csignal>
 #include "../include/zamowienie.h"
 #include "../include/Tables.h"
 #include "../include/wrappers.h"
@@ -10,13 +11,20 @@
 int shmid, semid, msgid_zam, msgid_zwrot;
 int msgid_logger, semid_logger;
 
+volatile sig_atomic_t sig_flag = 0;
+
+void handler(int sig) {
+    if (sig == SIGRTMIN || sig == SIGINT) {
+        sig_flag = 1;
+    }
+}
+
 void opuszczenie_lokalu(ZamowienieZwrot *zwrot, Zamowienie *zam) {
     if (zwrot && zwrot->nr_stolika >= 0) {
-        key_t sem_key = ftok(".", 'M');
-        int table_sem_id = sem_create(sem_key, table_count, 0666);
+        int table_sem_id = sem_create(ftok(".", 'M'), table_count, 0666);
         sem_op(table_sem_id, zwrot->nr_stolika, zam->liczba_osob);
     }
-    wyslij_log(msgid_logger, "Klient opuscil restauracje, stolik nr: " + (zwrot ? "brak zamowienia" : std::to_string(zwrot->nr_stolika)) + ", rozmiar grupy: " + std::to_string(zam->liczba_osob));
+    wyslij_log(msgid_logger, "Klient opuscil restauracje, stolik nr: " + (zwrot ? std::to_string(zwrot->nr_stolika) : "brak zamowienia") + ", rozmiar grupy: " + std::to_string(zam->liczba_osob));
 }
 
 void zwrot_naczyn(ZamowienieZwrot *zwrot) {
@@ -25,10 +33,13 @@ void zwrot_naczyn(ZamowienieZwrot *zwrot) {
 }
 
 void zamowienie(Zamowienie *zam, ZamowienieZwrot *zwrot) {
-    key_t sem_key = ftok(".", 'K');
-    semid = sem_create(sem_key, 2, 0666);
+    semid = sem_create(ftok(".", 'K'), 2, 0666);
 
-    sem_op(semid, 0, -1);
+    sem_op(semid, 0, -1, &sig_flag);
+    if (sig_flag) {
+        sem_op(semid, 0, 1);
+        return;
+    }
 
     if (!zwrot) {
         opuszczenie_lokalu(nullptr, zam);
@@ -41,9 +52,7 @@ void zamowienie(Zamowienie *zam, ZamowienieZwrot *zwrot) {
     msg_zamowienie msg{};
     msg.mtype = ZAMOWIENIE;
     msg.zam = *zam;
-
-    key_t msg_key = ftok(".", 'Z');
-    msgid_zam = msg_create(msg_key, 0666);
+    msgid_zam = msg_create(ftok(".", 'Z'), 0666);
 
     msg_send(msgid_zam, &msg, sizeof(Zamowienie), 0);
     wyslij_log(msgid_logger, "Klient zlozyl zamowienie: " + std::to_string(zam->liczba_osob) +
@@ -51,7 +60,9 @@ void zamowienie(Zamowienie *zam, ZamowienieZwrot *zwrot) {
                              ", napoj: " + std::to_string(zam->nr_napoju));
 
     msg_zwrot zw_msg{};
-    msg_recv(msgid_zwrot, &zw_msg, sizeof(ZamowienieZwrot), ZAMOWIENIE_ZWROT, 0);
+    if (msg_recv(msgid_zam, &msg, sizeof(Zamowienie), ZAMOWIENIE, 0, &sig_flag) == -1) {
+        return;
+    }
 
     *zwrot = zw_msg.zwrot;
 
@@ -59,16 +70,23 @@ void zamowienie(Zamowienie *zam, ZamowienieZwrot *zwrot) {
 }
 
 int main() {
-    srand(time(nullptr));
+    struct sigaction sa{};
+    sa.sa_handler = handler;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0;
 
-    key_t msg_key_log = ftok(".", 'L');
-    msgid_logger = msg_create(msg_key_log, 0666);
+    sigaction(SIGINT, &sa, nullptr);
+    sigaction(SIGRTMIN, &sa, nullptr);
+
+    srand(time(nullptr));
+    msgid_logger = msg_create(ftok(".", 'L'), 0666);
 
     Zamowienie zam{};
     zam.liczba_osob = rand() % 4 + 1;
 
     if (0.05 < rand() / RAND_MAX) {
         zamowienie(&zam, nullptr);
+        return 0;
     }
 
     zam.nr_pozycji_menu = rand() % MENU_POSILKI + 1;
@@ -78,10 +96,13 @@ int main() {
 
     ZamowienieZwrot zwrot{};
     zamowienie(&zam, &zwrot);
-
+    if (sig_flag) {
+        opuszczenie_lokalu(nullptr, &zam);
+        return 0;
+    }
     if (zwrot.nr_stolika < 0) {
-        wyslij_log(msgid_logger, "Klient nie znal stolika i wyszedl.");
-        return -1;
+        wyslij_log(msgid_logger, "Klient nie znalazl stolika i wyszedl.");
+        return 0;
     }
 
     wyslij_log(msgid_logger, "Klient odebral zamowienie, stolik nr: " + std::to_string(zwrot.nr_stolika));
@@ -90,7 +111,7 @@ int main() {
     wyslij_log(msgid_logger, "Klient skonczyl jesc danie.");
 
     sleep(zam.nr_napoju);
-    wyslij_log(msgid_logger, "Klient skonczyl napoj.");
+    wyslij_log(msgid_logger, "Klient skonczyl pic napoj.");
 
     zwrot_naczyn(&zwrot);
 

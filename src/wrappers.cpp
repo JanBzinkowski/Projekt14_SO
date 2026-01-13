@@ -1,5 +1,4 @@
 #include "../include/wrappers.h"
-#include <atomic>
 #include <cstring>
 
 void ipc_die(const char *msg) {
@@ -8,6 +7,8 @@ void ipc_die(const char *msg) {
 }
 
 int shm_create(key_t key, size_t size, int flags) {
+	if (key == -1)
+		ipc_die("ftok shm_key");
 	int shmid = shmget(key, size, flags);
 	if (shmid == -1)
 		ipc_die("shmget");
@@ -32,6 +33,8 @@ void shm_remove(int shmid) {
 }
 
 int sem_create(key_t key, int nsems, int flags) {
+	if (key == -1)
+		ipc_die("ftok shm_key");
 	int semid = semget(key, nsems, flags);
 	if (semid == -1)
 		ipc_die("semget");
@@ -45,16 +48,24 @@ void sem_set(int semid, int semnum, int val) {
 		ipc_die("semctl SETVAL");
 }
 
-void sem_op(int semid, int semnum, int op) {
-	struct sembuf sb{
-		sb.sem_num = static_cast<unsigned short>(semnum),
-		sb.sem_op = static_cast<short>(op),
-		sb.sem_flg = 0
-	};
+void sem_op(int semid, int semnum, int op, volatile sig_atomic_t *flag) {
+	struct sembuf sb{};
+	sb.sem_num = static_cast<unsigned short>(semnum);
+	sb.sem_op = static_cast<short>(op);
+	sb.sem_flg = 0;
 
-	if (semop(semid, &sb, 1) == -1)
+	int ret;
+	do {
+		ret = semop(semid, &sb, 1);
+		if (ret == -1 && errno == EINTR && flag && *flag) {
+			return;
+		}
+	} while (ret == -1 && errno == EINTR);
+
+	if (ret == -1)
 		ipc_die("semop");
 }
+
 
 void sem_remove(int semid) {
 	if (semctl(semid, 0, IPC_RMID) == -1)
@@ -69,6 +80,8 @@ int sem_getval(int semid, int semnum) {
 }
 
 int msg_create(key_t key, int flags) {
+	if (key == -1)
+		ipc_die("ftok shm_key");
 	int msgid = msgget(key, flags);
 	if (msgid == -1)
 		ipc_die("msgget");
@@ -76,15 +89,28 @@ int msg_create(key_t key, int flags) {
 }
 
 void msg_send(int msgid, void *msg, size_t size, int flags) {
-	if (msgsnd(msgid, msg, size, flags) == -1)
+	int ret;
+	do {
+		ret = msgsnd(msgid, msg, size, flags);
+	} while (ret == -1 && errno == EINTR);
+
+	if (ret == -1)
 		ipc_die("msgsnd");
 }
 
-ssize_t msg_recv(int msgid, void *msg, size_t size, long type, int flags) {
-	ssize_t r = msgrcv(msgid, msg, size, type, flags);
-	if (r == -1)
+ssize_t msg_recv(int msgid, void *msg, size_t size, long type, int flags, volatile sig_atomic_t *sig_flag) {
+	ssize_t ret;
+	do {
+		ret = msgrcv(msgid, msg, size, type, flags);
+		if (ret == -1 && errno == EINTR && sig_flag && *sig_flag) {
+			return -1;
+		}
+	} while (ret == -1 && errno == EINTR);
+
+	if (ret == -1)
 		ipc_die("msgrcv");
-	return r;
+
+	return ret;
 }
 
 void msg_remove(int msgid) {

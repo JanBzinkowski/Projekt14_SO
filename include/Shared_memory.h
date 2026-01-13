@@ -7,6 +7,7 @@ struct SharedMem {
 	int8_t new_customers = true;
 	int8_t end_program = false;
 	int8_t new_tables = false;
+	int8_t all_customers_out = false;
 	size_t tables_array_size = 0;
 };
 

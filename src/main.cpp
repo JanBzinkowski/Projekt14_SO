@@ -15,11 +15,6 @@ void handler(int sig) {
             kill(pid, SIGINT);
         }
     }
-    else if (sig == SIGSTOP) {
-        for (pid_t pid: pids) {
-            kill(pid, SIGSTOP);
-        }
-    }
     else if (sig == SIGRTMIN) {
         for (pid_t pid: pids) {
             kill(pid, SIGRTMIN);
@@ -31,20 +26,13 @@ void handler(int sig) {
     else if (sig == SIGRTMIN + 2) {
         kill(pids[2], SIGRTMIN + 2);
     }
-    else if (sig == SIGRTMIN + 3) {
-        for (pid_t pid: pids) {
-            kill(pid, SIGRTMIN + 3);
-        }
-    }
 }
 
 int main() {
     signal(SIGINT, handler);
-    signal(SIGSTOP, handler);
     signal(SIGRTMIN, handler);
     signal(SIGRTMIN + 1, handler);
     signal(SIGRTMIN + 2, handler);
-    signal(SIGRTMIN + 3, handler);
 
     key_t shm_key = ftok(".", 'S');
     if (shm_key == -1) {
@@ -71,7 +59,28 @@ int main() {
         ipc_die("ftok sem");
     }
 
-    int semid = sem_create(sem_key, table_count, IPC_CREAT | 0666);
+    int semid = sem_create(sem_key, table_size / sizeof(Table), IPC_CREAT | 0666);
+
+    for (int i = 0; i < X1; i++) {
+        table_array[i].max_osob = 1;
+        table_array[i].zarezerwowany = false;
+        table_array[i].rozmiar_grupy = 0;
+    }
+    for (int i = X1; i < X1 + X2; i++) {
+        table_array[i].max_osob = 2;
+        table_array[i].zarezerwowany = false;
+        table_array[i].rozmiar_grupy = 0;
+    }
+    for (int i = X1 + X2; i < X1 + X2 + X3; i++) {
+        table_array[i].max_osob = 3;
+        table_array[i].zarezerwowany = false;
+        table_array[i].rozmiar_grupy = 0;
+    }
+    for (int i = X1 + X2 + X3; i < X1 + X2 + X3 + X4; i++) {
+        table_array[i].max_osob = 4;
+        table_array[i].zarezerwowany = false;
+        table_array[i].rozmiar_grupy = 0;
+    }
 
     for (int i = 0; i < table_count; i++)
         sem_set(semid, i, table_array[i].max_osob);

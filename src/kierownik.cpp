@@ -6,14 +6,23 @@
 #include "../include/Shared_memory.h"
 #include "../include/Tables.h"
 
+int msgid;
 
 // możliwość wysłania sygnału do procesów po otrzymaniu sygnału z konsoli
 
 void wyslij_sygnal(SharedMem *shared_mem_flags) {
 	int a;
-	while (shared_mem_flags->end_program) {
+	Reserve r{};
+	KierownikRezerwacja rezerwacja{};
+	while (!shared_mem_flags->end_program) {
 		std::cout << "Wybierz sygnal:\n1. Zwieksz liczbe stolikow\n2. Rezerwuj miejsca\n3. Pozar!" << std::endl;
 		std::cin >> a;
+		if (std::cin.fail()) {
+			std::cin.clear();
+			std::cin.ignore(10000, '\n');
+			std::cout << "Wprowadzono niepoprawny znak, sprobuj ponownie.\n";
+			continue;
+		}
 		switch (a) {
 			case 1:
 				if (shared_mem_flags->new_tables) {
@@ -24,28 +33,90 @@ void wyslij_sygnal(SharedMem *shared_mem_flags) {
 				kill(getppid(), SIGRTMIN + 1);
 				break;
 			case 2:
+				while (!shared_mem_flags->end_program) {
+					std::cout << "Ile X1 zarezerwowac?" << std::endl;
+					std::cin >> r.x1;
+					if (std::cin.fail()) {
+						std::cin.clear();
+						std::cin.ignore(10000, '\n');
+						std::cout << "Wprowadzono niepoprawny znak, sprobuj ponownie.\n";
+						continue;
+					}
+					if (r.x1 > X1) {
+						std::cout << "Max stolikow X1 to " << X1 << std::endl;
+					}
+					else
+						break;
+				}
+				while (!shared_mem_flags->end_program) {
+					std::cout << "Ile X2 zarezerwowac?" << std::endl;
+					std::cin >> r.x2;
+					if (std::cin.fail()) {
+						std::cin.clear();
+						std::cin.ignore(10000, '\n');
+						std::cout << "Wprowadzono niepoprawny znak, sprobuj ponownie.\n";
+						continue;
+					}
+					if (r.x2 > X2) {
+						std::cout << "Max stolikow X2 to " << X2 << std::endl;
+					}
+					else
+						break;
+				}
+				while (!shared_mem_flags->end_program) {
+					std::cout << "Ile X3 zarezerwowac?" << std::endl;
+					std::cin >> r.x3;
+					if (std::cin.fail()) {
+						std::cin.clear();
+						std::cin.ignore(10000, '\n');
+						std::cout << "Wprowadzono niepoprawny znak, sprobuj ponownie.\n";
+						continue;
+					}
+					if (r.x3 > X3) {
+						std::cout << "Max stolikow X3 to " << X3 << std::endl;
+					}
+					else
+						break;
+				}
+				while (!shared_mem_flags->end_program) {
+					std::cout << "Ile X4 zarezerwowac?" << std::endl;
+					std::cin >> r.x4;
+					if (std::cin.fail()) {
+						std::cin.clear();
+						std::cin.ignore(10000, '\n');
+						std::cout << "Wprowadzono niepoprawny znak, sprobuj ponownie.\n";
+						continue;
+					}
+					if (r.x4 > X4) {
+						std::cout << "Max stolikow X4 to " << X4 << std::endl;
+					}
+					else
+						break;
+				}
+				rezerwacja = {REZERWACJE, r};
+				msg_send(msgid, &rezerwacja, sizeof(KierownikRezerwacja), 0);
 				kill(getppid(), SIGRTMIN + 2);
 				break;
+
 			case 3:
 				kill(getppid(), SIGRTMIN);
 				break;
+
+			default:
+				continue;
 		}
 	}
 }
 
 int main() {
-	key_t shm_key = ftok(".", 'S');
-	int shmid = shm_create(shm_key, sizeof(SharedMem) + sizeof(Table) * table_count, 0666);
+	int shmid = shm_create(ftok(".", 'S'), sizeof(SharedMem) + sizeof(Table) * table_count, 0666);
 	auto *base = static_cast<char *>(shm_attach(shmid, 0));
 
 	auto *shared_mem_flags = reinterpret_cast<SharedMem *>(base);
 
-	key_t sem_key = ftok(".", 'GK');
-	if (sem_key == -1) {
-		ipc_die("ftok");
-	}
+	int semid = sem_create(ftok(".", 'G'), 1, 0666);
 
-	int semid = sem_create(sem_key, 1, 0666);
+	msgid = msg_create(ftok(".", 'I'), 0666);
 
 	int a;
 	while (!shared_mem_flags->end_program) {
@@ -64,12 +135,13 @@ int main() {
 				sem_op(semid, 0, 1);
 				break;
 			case 3:
+				shared_mem_flags->new_customers = false;
 				shared_mem_flags->end_program = true;
-				kill(getppid(), SIGRTMIN + 3);
 				break;
+			default:
+				continue;
 		}
 	}
-
 
 	shm_detach(base);
 	shm_detach(shared_mem_flags);
