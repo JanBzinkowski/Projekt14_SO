@@ -114,7 +114,7 @@ int main() {
 
 	auto *shared_mem_flags = reinterpret_cast<SharedMem *>(base);
 
-	int semid = sem_create(ftok(".", 'G'), 1, 0666);
+	int semid = sem_create(ftok(".", 'G'), 2, 0666);
 
 	msgid = msg_create(ftok(".", 'I'), 0666);
 
