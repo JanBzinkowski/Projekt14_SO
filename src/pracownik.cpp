@@ -95,6 +95,16 @@ void zamowienie() {
 }
 
 int main() {
+	struct sigaction sa{};
+	sa.sa_handler = handler;
+	sigemptyset(&sa.sa_mask);
+	sa.sa_flags = 0;
+
+	sigaction(SIGINT, &sa, nullptr);
+	sigaction(SIGRTMIN, &sa, nullptr);
+	sigaction(SIGRTMIN + 1, &sa, nullptr);
+	sigaction(SIGRTMIN + 2, &sa, nullptr);
+
 	shmid = shm_create(ftok(".", 'S'), sizeof(SharedMem) + sizeof(Table) * table_count, 0666);
 	auto *base = static_cast<char *>(shm_attach(shmid, 0));
 	auto *shared_mem_flags = reinterpret_cast<SharedMem *>(base);
@@ -104,7 +114,7 @@ int main() {
 	msgid_logger = msg_create(ftok(".", 'L'), 0666);
 	semid = sem_create(ftok(".", 'W'), 1, 0666);
 	semid_gk = sem_create(ftok(".", 'G'), 2, 0666);
-	msgid_kierownik = msg_create(ftok(".", 'I'), 0666 | IPC_CREAT);
+	msgid_kierownik = msg_create(ftok(".", 'I'), 0666);
 
 	wyslij_log(msgid_logger, "Pracownik rozpoczyna prace");
 

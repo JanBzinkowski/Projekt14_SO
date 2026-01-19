@@ -1,0 +1,1 @@
+/usr/bin/c++ CMakeFiles/SO.dir/src/main.cpp.o CMakeFiles/SO.dir/src/Tables.cpp.o CMakeFiles/SO.dir/src/wrappers.cpp.o -o SO 

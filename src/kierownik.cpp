@@ -8,13 +8,18 @@
 
 int msgid;
 
-// możliwość wysłania sygnału do procesów po otrzymaniu sygnału z konsoli
+void handler(int sig) {
+	if (sig == SIGINT) {
+		kill(getppid(), SIGRTMIN);
+	}
+}
 
 void wyslij_sygnal(SharedMem *shared_mem_flags) {
 	int a;
+	bool endl_loop = false;
 	Reserve r{};
 	KierownikRezerwacja rezerwacja{};
-	while (!shared_mem_flags->end_program) {
+	while (!shared_mem_flags->end_program && !endl_loop) {
 		std::cout << "Wybierz sygnal:\n1. Zwieksz liczbe stolikow\n2. Rezerwuj miejsca\n3. Pozar!" << std::endl;
 		std::cin >> a;
 		if (std::cin.fail()) {
@@ -27,10 +32,12 @@ void wyslij_sygnal(SharedMem *shared_mem_flags) {
 			case 1:
 				if (shared_mem_flags->new_tables) {
 					std::cout << "Liczba stolikow zostala juz zwiekszona" << std::endl;
+					endl_loop = true;
 					break;
 				}
 				shared_mem_flags->new_tables = true;
 				kill(getppid(), SIGRTMIN + 1);
+				endl_loop = true;
 				break;
 			case 2:
 				while (!shared_mem_flags->end_program) {
@@ -45,8 +52,9 @@ void wyslij_sygnal(SharedMem *shared_mem_flags) {
 					if (r.x1 > X1) {
 						std::cout << "Max stolikow X1 to " << X1 << std::endl;
 					}
-					else
+					else {
 						break;
+					}
 				}
 				while (!shared_mem_flags->end_program) {
 					std::cout << "Ile X2 zarezerwowac?" << std::endl;
@@ -60,8 +68,9 @@ void wyslij_sygnal(SharedMem *shared_mem_flags) {
 					if (r.x2 > X2) {
 						std::cout << "Max stolikow X2 to " << X2 << std::endl;
 					}
-					else
+					else {
 						break;
+					}
 				}
 				while (!shared_mem_flags->end_program) {
 					std::cout << "Ile X3 zarezerwowac?" << std::endl;
@@ -75,8 +84,9 @@ void wyslij_sygnal(SharedMem *shared_mem_flags) {
 					if (r.x3 > X3) {
 						std::cout << "Max stolikow X3 to " << X3 << std::endl;
 					}
-					else
+					else {
 						break;
+					}
 				}
 				while (!shared_mem_flags->end_program) {
 					std::cout << "Ile X4 zarezerwowac?" << std::endl;
@@ -90,16 +100,19 @@ void wyslij_sygnal(SharedMem *shared_mem_flags) {
 					if (r.x4 > X4) {
 						std::cout << "Max stolikow X4 to " << X4 << std::endl;
 					}
-					else
+					else {
 						break;
+					}
 				}
 				rezerwacja = {REZERWACJE, r};
 				msg_send(msgid, &rezerwacja, sizeof(KierownikRezerwacja), 0);
 				kill(getppid(), SIGRTMIN + 2);
+				endl_loop = true;
 				break;
 
 			case 3:
 				kill(getppid(), SIGRTMIN);
+				endl_loop = true;
 				break;
 
 			default:

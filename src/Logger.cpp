@@ -6,22 +6,11 @@
 #include "../include/Shared_memory.h"
 
 int main() {
-	key_t shm_key = ftok(".", 'S');
-	if (shm_key == -1) {
-		perror("ftok");
-		return 1;
-	}
-
-	int shmid = shm_create(shm_key, sizeof(SharedMem), 0666);
+	int shmid = shm_create(ftok(".", 'S'), sizeof(SharedMem), 0666);
 	auto *shared_mem_flags = static_cast<SharedMem *>(shm_attach(shmid, 0));
 
-	key_t msg_key = ftok(".", 'L');
-	if (msg_key == -1) {
-		perror("ftok msg");
-		return 1;
-	}
 
-	int msgid = msg_create(msg_key, 0666 | IPC_CREAT);
+	int msgid = msg_create(ftok(".", 'L'), 0666);
 
 	std::ofstream log_file("../log.txt", std::ios::app);
 	if (!log_file.is_open()) {

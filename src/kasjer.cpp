@@ -14,9 +14,10 @@ volatile sig_atomic_t exception_flag = 0;
 volatile sig_atomic_t exception_flag_fire = 0;
 
 void handler(int sig) {
-    exception_flag = 1;
-    if (sig == SIGRTMIN)
+    if (sig == SIGRTMIN) {
         exception_flag_fire = 1;
+        exception_flag = 1;
+    }
 }
 
 void zamowienie(SharedMem *shared_mem_flags, Table *table_array) {
@@ -79,13 +80,13 @@ int main() {
     auto *shared_mem_flags = reinterpret_cast<SharedMem *>(base);
     auto *table_array = reinterpret_cast<Table *>(base + sizeof(SharedMem));
 
-    semid = sem_create(ftok(".", 'K'), 2, IPC_CREAT | 0666);
+    semid = sem_create(ftok(".", 'K'), 2, 0666);
 
     sem_set(semid, 0, 1);
     sem_set(semid, 1, 0);
-    msgid_zam = msg_create(ftok(".", 'Z'), IPC_CREAT | 0666);
+    msgid_zam = msg_create(ftok(".", 'Z'), 0666);
     msgid_logger = msg_create(ftok(".", 'L'), 0666);
-    semid_prac = sem_create(ftok(".", 'W'), 1, 0666 | IPC_CREAT);
+    semid_prac = sem_create(ftok(".", 'W'), 1, 0666);
     semid_gk = sem_create(ftok(".", 'G'), 2, 0666);
 
     wyslij_log(msgid_logger, "Kasjer rozpoczyna prace");

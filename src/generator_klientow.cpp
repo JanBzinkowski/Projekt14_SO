@@ -6,9 +6,12 @@
 #include <vector>
 #include <sys/wait.h>
 #include <algorithm>
+#include <fcntl.h>
 
 #include "../include/wrappers.h"
 #include "../include/Shared_memory.h"
+
+#define MAX_KLIENTOW 10000
 
 volatile sig_atomic_t fire_sig_flag = 0;
 pthread_mutex_t pids_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -28,6 +31,13 @@ void sigchld_handler(int) {
 	(void) r;
 }
 
+void handler(int sig) {
+	if (sig == SIGRTMIN || sig == SIGINT) {
+		fire_sig_flag = 1;
+		kill(getpid(), SIGRTMIN);
+	}
+}
+
 void child_remove(std::vector<int> &pids) {
 	while (true) {
 		pid_t pid = waitpid(-1, nullptr, WNOHANG);
@@ -35,6 +45,7 @@ void child_remove(std::vector<int> &pids) {
 			break;
 		}
 		pids.erase(std::remove(pids.begin(), pids.end(), pid), pids.end());
+		sem_op(semid, 2, 1);
 	}
 }
 
@@ -61,18 +72,30 @@ void *watek(void *arg) {
 }
 
 int main() {
+	struct sigaction sa{};
+	sa.sa_handler = handler;
+	sigemptyset(&sa.sa_mask);
+	sa.sa_flags = 0;
+
+	struct sigaction sa_child{};
+	sa_child.sa_handler = sigchld_handler;
+	sigemptyset(&sa_child.sa_mask);
+	sa_child.sa_flags = 0;
+
 	if (pipe(sig_pipe) == -1) {
 		ipc_die("pipe");
 	}
 	fcntl(sig_pipe[1], F_SETFL, O_NONBLOCK);
 
+	sigaction(SIGINT, &sa, nullptr);
+	sigaction(SIGCHLD, &sa_child, nullptr);
+
 	int shmid = shm_create(ftok(".", 'S'), sizeof(SharedMem), 0);
 	auto *shared_mem_flags = static_cast<SharedMem *>(shm_attach(shmid, 0));
 
-	signal(SIGCHLD, sigchld_handler);
-
-	semid = sem_create(ftok(".", 'G'), 2, 0666 | IPC_CREAT);
+	semid = sem_create(ftok(".", 'G'), 3, 0666);
 	sem_set(semid, 0, 1);
+	sem_set(semid, 2, MAX_KLIENTOW);
 
 	std::vector<int> pids;
 	int pid;
@@ -84,10 +107,11 @@ int main() {
 		ipc_die("pthread_create");
 	}
 
-	while (!shared_mem_flags->end_program) {
+	while (!shared_mem_flags->end_program && !fire_sig_flag) {
 		sem_op(semid, 0, -1);
-		while (shared_mem_flags->new_customers) {
-			sleep(rand() % 30 + 1);
+		while (shared_mem_flags->new_customers && !fire_sig_flag) {
+			//sleep(rand() % 30 + 1);
+			sem_op(semid, 2, -1);
 			pid = fork();
 			if (pid == -1) {
 				perror("fork, generator klientow");

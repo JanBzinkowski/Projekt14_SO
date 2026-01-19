@@ -12,7 +12,7 @@ std::vector<pid_t> pids;
 void handler(int sig) {
     if (sig == SIGINT) {
         for (pid_t pid: pids) {
-            kill(pid, SIGINT);
+            kill(pid, SIGRTMIN);
         }
     }
     else if (sig == SIGRTMIN) {
@@ -34,10 +34,12 @@ int main() {
     signal(SIGRTMIN + 1, handler);
     signal(SIGRTMIN + 2, handler);
 
-    key_t shm_key = ftok(".", 'S');
-    if (shm_key == -1) {
-        ipc_die("ftok");
-    }
+    int msgid_logger = msg_create(ftok(".", 'L'), 0666 | IPC_CREAT);
+    int msgid_kierownik = msg_create(ftok(".", 'I'), 0666 | IPC_CREAT);
+    int gen_semid = sem_create(ftok(".", 'G'), 3, 0666 | IPC_CREAT);
+    int kasa_semid = sem_create(ftok(".", 'K'), 2, IPC_CREAT | 0666);
+    int msgid_zam = msg_create(ftok(".", 'Z'), IPC_CREAT | 0666);
+    int semid_prac = sem_create(ftok(".", 'W'), 1, 0666 | IPC_CREAT);
 
     size_t table_size = sizeof(Table) * (table_count + X3 * 2);
     if (X3 == 0) {
@@ -45,7 +47,7 @@ int main() {
     }
     size_t total_size = sizeof(SharedMem) + table_size;
 
-    int shmid = shm_create(shm_key, total_size, IPC_CREAT | 0666);
+    int shmid = shm_create(ftok(".", 'S'), total_size, IPC_CREAT | 0666);
     void *base = shm_attach(shmid, 0);
 
     auto *shared_mem_flags = (SharedMem *) base;
@@ -54,12 +56,7 @@ int main() {
     shared_mem_flags->new_customers = true;
     shared_mem_flags->tables_array_size = table_size;
 
-    key_t sem_key = ftok(".", 'M');
-    if (sem_key == -1) {
-        ipc_die("ftok sem");
-    }
-
-    int semid = sem_create(sem_key, table_size / sizeof(Table), IPC_CREAT | 0666);
+    int semid = sem_create(ftok(".", 'M'), table_size / sizeof(Table), IPC_CREAT | 0666);
 
     for (int i = 0; i < X1; i++) {
         table_array[i].max_osob = 1;
@@ -136,5 +133,15 @@ int main() {
     shm_detach(shared_mem_flags);
     shm_detach(table_array);
     shm_remove(shmid);
+
+    sem_remove(semid_prac);
+    sem_remove(semid);
+    sem_remove(kasa_semid);
+    sem_remove(gen_semid);
+
+    msg_remove(msgid_kierownik);
+    msg_remove(msgid_logger);
+    msg_remove(msgid_zam);
+
     return 0;
 }

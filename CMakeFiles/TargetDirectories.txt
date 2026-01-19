@@ -1,0 +1,9 @@
+/home/jan/CLionProjects/ProjektSO_Jan_Bzinkowski/CMakeFiles/klient.dir
+/home/jan/CLionProjects/ProjektSO_Jan_Bzinkowski/CMakeFiles/generator_klientow.dir
+/home/jan/CLionProjects/ProjektSO_Jan_Bzinkowski/CMakeFiles/pracownik.dir
+/home/jan/CLionProjects/ProjektSO_Jan_Bzinkowski/CMakeFiles/kierownik.dir
+/home/jan/CLionProjects/ProjektSO_Jan_Bzinkowski/CMakeFiles/SO.dir
+/home/jan/CLionProjects/ProjektSO_Jan_Bzinkowski/CMakeFiles/logger.dir
+/home/jan/CLionProjects/ProjektSO_Jan_Bzinkowski/CMakeFiles/kasjer.dir
+/home/jan/CLionProjects/ProjektSO_Jan_Bzinkowski/CMakeFiles/edit_cache.dir
+/home/jan/CLionProjects/ProjektSO_Jan_Bzinkowski/CMakeFiles/rebuild_cache.dir

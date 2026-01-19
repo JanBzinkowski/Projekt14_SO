@@ -1,2 +1,9 @@
 Opuszczam(y) restaurację. Proces nr.: 8359
 Opuszczam(y) restaurację. Proces nr.: 8393
+[mtype=1] Kasjer rozpoczyna prace
+[mtype=1] Pracownik rozpoczyna prace
+[mtype=1] Kasjer rozpoczyna prace
+[mtype=1] Pracownik rozpoczyna prace
+[mtype=1] Pracownik rozpoczyna prace
+[mtype=1] Kasjer rozpoczyna prace
+[mtype=1] Pracownik rozpoczyna prace

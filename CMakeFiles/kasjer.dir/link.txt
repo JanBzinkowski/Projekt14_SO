@@ -1,0 +1,1 @@
+/usr/bin/c++ CMakeFiles/kasjer.dir/src/kasjer.cpp.o CMakeFiles/kasjer.dir/src/wrappers.cpp.o CMakeFiles/kasjer.dir/src/Tables.cpp.o -o kasjer 
