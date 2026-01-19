@@ -132,29 +132,29 @@ int main() {
 	msgid = msg_create(ftok(".", 'I'), 0666);
 
 	int a;
-	while (!shared_mem_flags->end_program) {
-		std::cout << "Witaj kierowniku. Co chcialbys zrobic?\n1. Wydac sygnal\n2. " << (shared_mem_flags->new_customers ? "Wylaczyc" : "Wlaczyc") << "tworzenie nowych klientow\n3. Zamknac restauracje" << std::endl;
-		std::cin >> a;
-		switch (a) {
-			case 1:
-				wyslij_sygnal(shared_mem_flags);
-				break;
-			case 2:
-				if (shared_mem_flags->new_customers) {
-					shared_mem_flags->new_customers = false;
-					break;
-				}
-				shared_mem_flags->new_customers = true;
-				sem_op(semid, 0, 1);
-				break;
-			case 3:
-				shared_mem_flags->new_customers = false;
-				shared_mem_flags->end_program = true;
-				break;
-			default:
-				continue;
-		}
-	}
+	// while (!shared_mem_flags->end_program) {
+	// 	std::cout << "Witaj kierowniku. Co chcialbys zrobic?\n1. Wydac sygnal\n2. " << (shared_mem_flags->new_customers ? "Wylaczyc" : "Wlaczyc") << "tworzenie nowych klientow\n3. Zamknac restauracje" << std::endl;
+	// 	std::cin >> a;
+	// 	switch (a) {
+	// 		case 1:
+	// 			wyslij_sygnal(shared_mem_flags);
+	// 			break;
+	// 		case 2:
+	// 			if (shared_mem_flags->new_customers) {
+	// 				shared_mem_flags->new_customers = false;
+	// 				break;
+	// 			}
+	// 			shared_mem_flags->new_customers = true;
+	// 			sem_op(semid, 0, 1);
+	// 			break;
+	// 		case 3:
+	// 			shared_mem_flags->new_customers = false;
+	// 			shared_mem_flags->end_program = true;
+	// 			break;
+	// 		default:
+	// 			continue;
+	// 	}
+	// }
 
 	shm_detach(base);
 	shm_detach(shared_mem_flags);
