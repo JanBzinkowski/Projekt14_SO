@@ -38,7 +38,7 @@ int main() {
 
 	while (!shared_mem_flags->end_program && fire_flag == 0 && sem_getval(logger_semid, 0) > 0) {
 		MsgText msg{};
-		if (msg_recv(msgid, &msg, sizeof(msg.text), 0, 0, &fire_flag) > 0) {
+		if (msg_recv(msgid, &msg, sizeof(msg.text), -1, 0, &fire_flag) > 0) {
 			if (msg.mtype == 999) {
 				break;
 			}
@@ -53,8 +53,6 @@ int main() {
 	log_file.close();
 
 	shm_detach(shared_mem_flags);
-
-	msg_remove(msgid);
 
 	return 0;
 }

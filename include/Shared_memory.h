@@ -3,6 +3,8 @@
 
 #include <cctype>
 
+#define MAX_KLIENTOW 10000
+
 struct SharedMem {
 	int8_t new_customers = true;
 	int8_t end_program = false;

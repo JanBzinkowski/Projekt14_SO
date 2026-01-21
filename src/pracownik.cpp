@@ -17,6 +17,7 @@ volatile sig_atomic_t fire_sig_flag = 0;
 void handler(int sig) {
 	if (sig == SIGRTMIN || sig == SIGINT) {
 		fire_sig_flag = 1;
+		sig_flag = 3;
 	}
 	if (sig == SIGRTMIN + 1) {
 		sig_flag = 1;
@@ -63,7 +64,7 @@ void rezerwacje(KierownikRezerwacja &rezerwacja, Table *table, SharedMem *mem_fl
 }
 
 
-void exra(Table * &table) {
+void extra(Table * &table) {
 	if (X3 == 0) {
 		X3 = 1;
 	}
@@ -78,6 +79,10 @@ void exra(Table * &table) {
 void zamowienie() {
 	msg_pracownik msg{};
 	if (msg_recv(msgid_zam, &msg, sizeof(ZamowieniePracownik), ZAMOWIENIE_PRACOWNIK, 0, &fire_sig_flag) == -1) {
+		return;
+	}
+
+	if (msg.zwrot.nr_stolika < 0) {
 		return;
 	}
 
@@ -123,26 +128,27 @@ int main() {
 
 	wyslij_log(msgid_logger, "Pracownik rozpoczyna prace");
 
-	while (!shared_mem_flags->end_program && !shared_mem_flags->all_customers_out) {
-		sem_op(semid, 0, -1, &fire_sig_flag);
+	while (!shared_mem_flags->end_program && !shared_mem_flags->all_customers_out && fire_sig_flag == 0) {
+		sem_op(semid, 0, -1, &sig_flag);
 		if (fire_sig_flag == 1) {
 			wyslij_log(msgid_logger, "Pracownik czekna na ewakuacje klientow");
 			break;
 		}
-		else if (sig_flag == 1) {
-			KierownikStoly st{};
-			msg_recv(msgid_kierownik, &st, sizeof(KierownikStoly), EXTRA, 0, &fire_sig_flag);
+
+		if (sig_flag == 1) {
+			sig_flag = 0;
+			extra(table_array);
 		}
 		else if (sig_flag == 2) {
+			sig_flag = 0;
 			KierownikRezerwacja re{};
 			msg_recv(msgid_kierownik, &re, sizeof(KierownikStoly), REZERWACJE, 0, &fire_sig_flag);
 			rezerwacje(re, table_array, shared_mem_flags);
 		}
-
 		zamowienie();
 	}
 
-	sem_op(semid_gk, 1, -1, &fire_sig_flag);
+	sem_op(semid_gk, 1, -1);
 
 	wyslij_log(msgid_logger, "Pracownik konczy prace");
 

@@ -10,8 +10,7 @@
 
 #include "../include/wrappers.h"
 #include "../include/Shared_memory.h"
-
-#define MAX_KLIENTOW 10000
+#include "../include/zamowienie.h"
 
 volatile sig_atomic_t fire_sig_flag = 0;
 pthread_mutex_t pids_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -106,6 +105,7 @@ int main() {
 
 	msgid_logger = msg_create(ftok(".", 'L'), 0666);
 	int logger_semid = sem_create(ftok(".", 'P'), 1, 0666);
+	int msgid_zam = msg_create(ftok(".", 'Z'), 0666);
 	sem_op(logger_semid, 0, 1);
 
 	std::vector<int> pids;
@@ -120,7 +120,6 @@ int main() {
 
 	while (!shared_mem_flags->end_program && fire_sig_flag == 0) {
 		sem_op(semid, 0, -1, &fire_sig_flag);
-		wyslij_log(msgid_logger, "Generator rusza");
 		while (shared_mem_flags->new_customers && fire_sig_flag == 0) {
 			sleep(rand() % 10 + 1);
 			sem_op(semid, 2, -1, &fire_sig_flag);
@@ -139,6 +138,14 @@ int main() {
 				pids.push_back(pid);
 				pthread_mutex_unlock(&pids_mutex);
 			}
+		}
+	}
+	if (fire_sig_flag == 1) {
+		msg_zwrot kill;
+		for (auto p: pids) {
+			kill.mtype = p;
+			kill.zwrot = {-2};
+			msg_send(msgid_zam, &kill, sizeof(ZamowienieZwrot), IPC_NOWAIT);
 		}
 	}
 	uint8_t b = 1;

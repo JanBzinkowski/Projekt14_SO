@@ -58,19 +58,19 @@ void zamowienie(SharedMem *shared_mem_flags, Table *table_array, std::vector<Zlo
     bool znaleziono_stolik = false;
     int index;
     int pid = msg.zam.pid;
-    do {
-        if (nowa_wiadomosc) {
-            if (!(znaleziono_stolik = sprawdz_stolik(index, table_array, msg.zam))) {
-                kolejka->emplace_back(msg.zam.pid);
-            }
+    if (nowa_wiadomosc) {
+        znaleziono_stolik = sprawdz_stolik(index, table_array, msg.zam);
+        if (!znaleziono_stolik) {
+            kolejka->emplace_back(msg.zam.pid);
         }
-        for (auto const zamowienia: *kolejka) {
-            pid = zamowienia.pid;
-            if ((znaleziono_stolik = sprawdz_stolik(index, table_array, zamowienia))) {
-                break;
-            }
+    }
+    for (auto const zamowienia: *kolejka) {
+        pid = zamowienia.pid;
+        znaleziono_stolik = sprawdz_stolik(index, table_array, zamowienia);
+        if (znaleziono_stolik) {
+            break;
         }
-    } while (!znaleziono_stolik && !exception_flag);
+    }
 
     msg_pracownik pracownik{};
     pracownik.mtype = ZAMOWIENIE_PRACOWNIK;
@@ -146,9 +146,12 @@ int main() {
     using clock = std::chrono::steady_clock;
     auto last_handle = clock::now();
 
-    while (!shared_mem_flags->end_program) {
+    while (!shared_mem_flags->end_program && exception_flag == 0) {
         if (!kolejka.empty() && sem_getval(semid, 1) == 0) {
             if (clock::now() - last_handle >= std::chrono::seconds(1)) {
+                if (exception_flag == 1) {
+                    break;
+                }
                 zamowienie(shared_mem_flags, table_array, &kolejka, false);
                 last_handle = clock::now();
                 continue;
@@ -157,8 +160,9 @@ int main() {
             continue;
         }
         sem_op(semid, 1, -1, &exception_flag);
-        if (exception_flag)
+        if (exception_flag == 1) {
             break;
+        }
 
         zamowienie(shared_mem_flags, table_array, &kolejka);
         last_handle = clock::now();

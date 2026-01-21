@@ -56,8 +56,11 @@ void sem_op(int semid, int semnum, int op, volatile sig_atomic_t *flag) {
 
 	int ret;
 	do {
+		if (flag && *flag) {
+			return;
+		}
 		ret = semop(semid, &sb, 1);
-		if (ret == -1 && errno == EINTR && flag && *flag) {
+		if (ret == -1 && errno == EINTR) {
 			return;
 		}
 	} while (ret == -1 && errno == EINTR);
@@ -101,8 +104,11 @@ void msg_send(int msgid, void *msg, size_t size, int flags) {
 ssize_t msg_recv(int msgid, void *msg, size_t size, long type, int flags, volatile sig_atomic_t *sig_flag) {
 	ssize_t ret;
 	do {
+		if (sig_flag && *sig_flag) {
+			return -1;
+		}
 		ret = msgrcv(msgid, msg, size, type, flags);
-		if (ret == -1 && errno == EINTR && sig_flag && *sig_flag) {
+		if (ret == -1 && errno == EINTR) {
 			return -1;
 		}
 	} while (ret == -1 && errno == EINTR);

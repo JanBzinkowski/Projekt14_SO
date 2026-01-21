@@ -96,7 +96,7 @@ int main() {
     if (pid < 0)
         ipc_die("fork");
     if (pid == 0) {
-        execl("./logger", "logger", NULL);
+        execl("./generator_klientow", "generator_klientow", NULL);
         ipc_die("exec logger");
     }
     pids.push_back(pid);
@@ -123,25 +123,17 @@ int main() {
     if (pid < 0)
         ipc_die("fork");
     if (pid == 0) {
-        execl("./generator_klientow", "generator_klientow", NULL);
+        execl("./logger", "logger", NULL);
         ipc_die("exec generator_klientow");
     }
     pids.push_back(pid);
 
-    pid = fork();
-    if (pid < 0)
-        ipc_die("fork");
-    if (pid == 0) {
-        execl("./kierownik", "kierownik", NULL);
-        ipc_die("exec kierownik");
-    }
-    pids.push_back(pid);
-
-    for (const auto chpid: pids)
+    for (const auto chpid: pids) {
         waitpid(chpid, nullptr, 0);
+        std::cerr << "zakonczono: [" + std::to_string(chpid) + "]" << std::endl;
+    }
 
-    shm_detach(shared_mem_flags);
-    shm_detach(table_array);
+    shm_detach(base);
     shm_remove(shmid);
 
     sem_remove(semid_prac);

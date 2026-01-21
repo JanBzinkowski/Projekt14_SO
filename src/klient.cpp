@@ -35,10 +35,10 @@ void *decyzja_menu(void *args) {
 void *jedzenie(void *args) {
     auto zamowienie = (ThreadArgs *) args;
     sleep(zamowienie->zamowienie->nr_pozycji_menu);
-    wyslij_log(msgid_logger, "Klient skonczyl jesc danie.");
+    wyslij_log(msgid_logger, "Klient skonczyl jesc danie.", 2);
 
     sleep(zamowienie->zamowienie->nr_napoju);
-    wyslij_log(msgid_logger, "Klient skonczyl pic napoj.");
+    wyslij_log(msgid_logger, "Klient skonczyl pic napoj.", 2);
     return nullptr;
 }
 
@@ -93,6 +93,7 @@ void zamowienie(ZlozenieZamowienia *zam, ZamowienieZwrot *zwrot) {
                                     : ""));
 
     msg_zwrot zw_msg{};
+
     if (msg_recv(msgid_zam, &zw_msg, sizeof(ZamowienieZwrot), getpid(), 0, &sig_flag) == -1) {
         return;
     }
@@ -155,7 +156,7 @@ int main() {
     tids.erase(tids.begin(), tids.end());
     for (int i = 0; i < zam.liczba_osob; i++) {
         pthread_t tid_t;
-        if (pthread_create(&tid_t, nullptr, decyzja_menu, &thread_args[i]) != 0) {
+        if (pthread_create(&tid_t, nullptr, jedzenie, &thread_args[i]) != 0) {
             ipc_die("pthread_create");
         }
         tids.push_back(tid_t);
@@ -168,8 +169,6 @@ int main() {
     zwrot_naczyn(&zwrot);
 
     opuszczenie_lokalu(&zwrot, &zam);
-
-    sleep(1);
 
     sem_op(logger_semid, 0, -1);
 
