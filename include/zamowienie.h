@@ -3,7 +3,6 @@
 
 #define ZAMOWIENIE 1
 #define ZAMOWIENIE_PRACOWNIK 2
-#define ZAMOWIENIE_ZWROT 3
 
 //Liczba pozycji menu napojów/posiłków (nr. pozycji menu odpowiada czasowi spozywania posilku/napoju)
 
@@ -37,7 +36,7 @@ struct msg_pracownik {
 };
 
 struct msg_zwrot {
-	long mtype = ZAMOWIENIE_ZWROT;
+	long mtype = 3;
 	ZamowienieZwrot zwrot;
 };
 

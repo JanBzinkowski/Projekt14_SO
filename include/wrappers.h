@@ -14,7 +14,7 @@
 #define REZERWACJE 2
 
 
-struct semun {
+union semun {
 	int val;
 	struct semid_ds *buf;
 	unsigned short *array;
@@ -71,5 +71,7 @@ ssize_t msg_recv(int msgid, void *msg, size_t size, long type, int flags, volati
 void msg_remove(int msgid);
 
 void wyslij_log(int logger_id, const std::string &tekst);
+
+ssize_t pipe_recv(int fd, void *buf, size_t count, volatile sig_atomic_t *sig_flag = nullptr);
 
 #endif //SO_SEM_OPS_H

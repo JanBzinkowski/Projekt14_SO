@@ -29,17 +29,24 @@ void handler(int sig) {
 }
 
 int main() {
-    signal(SIGINT, handler);
-    signal(SIGRTMIN, handler);
-    signal(SIGRTMIN + 1, handler);
-    signal(SIGRTMIN + 2, handler);
+    struct sigaction sa{};
+    sa.sa_handler = handler;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0;
+
+    sigaction(SIGINT, &sa, nullptr);
+    sigaction(SIGRTMIN, &sa, nullptr);
+    sigaction(SIGRTMIN + 1, &sa, nullptr);
+    sigaction(SIGRTMIN + 2, &sa, nullptr);
 
     int msgid_logger = msg_create(ftok(".", 'L'), 0666 | IPC_CREAT);
+    int logger_semid = sem_create(ftok(".", 'P'), 1, IPC_CREAT | 0666);
     int msgid_kierownik = msg_create(ftok(".", 'I'), 0666 | IPC_CREAT);
     int gen_semid = sem_create(ftok(".", 'G'), 3, 0666 | IPC_CREAT);
     int kasa_semid = sem_create(ftok(".", 'K'), 2, IPC_CREAT | 0666);
     int msgid_zam = msg_create(ftok(".", 'Z'), IPC_CREAT | 0666);
-    int semid_prac = sem_create(ftok(".", 'W'), 1, 0666 | IPC_CREAT);
+    int semid_prac = sem_create(ftok(".", 'W'), 2, 0666 | IPC_CREAT);
+    sem_op(semid_prac, 1, 1);
 
     size_t table_size = sizeof(Table) * (table_count + X3 * 2);
     if (X3 == 0) {
@@ -53,7 +60,10 @@ int main() {
     auto *shared_mem_flags = (SharedMem *) base;
     auto *table_array = (Table *) ((char *) base + sizeof(SharedMem));
 
+    shared_mem_flags->all_customers_out = false;
     shared_mem_flags->new_customers = true;
+    shared_mem_flags->end_program = false;
+    shared_mem_flags->new_tables = false;
     shared_mem_flags->tables_array_size = table_size;
 
     int semid = sem_create(ftok(".", 'M'), table_size / sizeof(Table), IPC_CREAT | 0666);
@@ -80,7 +90,7 @@ int main() {
     }
 
     for (int i = 0; i < table_count; i++)
-        sem_set(semid, i, table_array[i].max_osob);
+        sem_op(semid, i, table_array[i].max_osob);
 
     pid_t pid = fork();
     if (pid < 0)
@@ -135,6 +145,7 @@ int main() {
     shm_remove(shmid);
 
     sem_remove(semid_prac);
+    sem_remove(logger_semid);
     sem_remove(semid);
     sem_remove(kasa_semid);
     sem_remove(gen_semid);

@@ -42,7 +42,7 @@ int sem_create(key_t key, int nsems, int flags) {
 }
 
 void sem_set(int semid, int semnum, int val) {
-	semun arg;
+	union semun arg{};
 	arg.val = val;
 	if (semctl(semid, semnum, SETVAL, arg) == -1)
 		ipc_die("semctl SETVAL");
@@ -73,7 +73,7 @@ void sem_remove(int semid) {
 }
 
 int sem_getval(int semid, int semnum) {
-	int val = semctl(semid, semnum, GETVAL);
+	int val = semctl(semid, semnum, GETVAL, 0);
 	if (val == -1)
 		ipc_die("semctl GETVAL");
 	return val;
@@ -118,14 +118,29 @@ void msg_remove(int msgid) {
 		ipc_die("msgctl IPC_RMID");
 }
 
-void wyslij_log(int logger_id, const std::string &tekst) {
-	if (tekst.empty())
+void wyslij_log(int logger_id, const std::string &tekst, long msgtype) {
+	if (tekst.empty() && msgtype == 1)
 		return;
 
 	MsgText msg{};
-	msg.mtype = 1;
+	msg.mtype = msgtype;
 	strncpy(msg.text, tekst.c_str(), sizeof(msg.text) - 1);
 	msg.text[sizeof(msg.text) - 1] = '\0';
 
 	msg_send(logger_id, &msg, sizeof(msg.text), 0);
+}
+
+ssize_t pipe_recv(int fd, void *buf, size_t count, volatile sig_atomic_t *sig_flag) {
+	ssize_t ret;
+	do {
+		ret = read(fd, buf, count);
+		if (ret == -1 && errno == EINTR && sig_flag && *sig_flag) {
+			return -1;
+		}
+	} while (ret == -1 && errno == EINTR);
+
+	if (ret == -1) {
+		ipc_die("read");
+	}
+	return ret;
 }
