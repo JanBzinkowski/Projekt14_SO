@@ -48,7 +48,7 @@ void sem_set(int semid, int semnum, int val);
 
 int sem_create(key_t key, int nsems, int flags);
 
-void sem_op(int semid, int semnum, int op, volatile sig_atomic_t *flag = nullptr);
+int sem_op(int semid, int semnum, int op, volatile sig_atomic_t *flag = nullptr, short int sem_flag = 0);
 
 void sem_remove(int semid);
 

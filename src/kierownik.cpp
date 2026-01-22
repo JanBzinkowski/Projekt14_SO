@@ -7,12 +7,15 @@
 #include "../include/Tables.h"
 #include "../include/zamowienie.h"
 
-int msgid_kierownik, msgid_logger, logger_semid, gen_semid, kasa_semid, msgid_zam, semid_prac;
+int msgid_kierownik, gen_semid, semid_prac;
 
 pid_t mainprog_pid;
 
 void handler(int sig) {
-	if (sig == SIGINT || sig == SIGRTMIN) {
+	if (sig == SIGINT) {
+		kill(mainprog_pid, SIGINT);
+	}
+	if (sig == SIGRTMIN) {
 		kill(mainprog_pid, SIGRTMIN);
 	}
 	else if (sig == SIGRTMIN + 1) {
@@ -30,28 +33,28 @@ void unlock_sem(int semid, int nsems) {
 }
 
 void unlock_all() {
-	unlock_sem(logger_semid, 1);
-	unlock_sem(gen_semid, 3);
-	unlock_sem(kasa_semid, 2);
-	unlock_sem(semid_prac, 2);
-
-	MsgText msg_logger{999, "0"};
-
-	msgsnd(msgid_logger, &msg_logger, sizeof(msg_logger.text), IPC_NOWAIT);
-
-	msg_zamowienie msg_zam;
-	msg_zam.mtype = ZAMOWIENIE;
-	msgsnd(msgid_zam, &msg_zam, sizeof(ZlozenieZamowienia), IPC_NOWAIT);
-
-	msg_pracownik msg_pr;
-	msg_zam.mtype = ZAMOWIENIE_PRACOWNIK;
-	msgsnd(msgid_zam, &msg_pr, sizeof(ZamowieniePracownik), IPC_NOWAIT);
-
-	KierownikStoly stoly = {EXTRA, false};
-	msgsnd(msgid_kierownik, &stoly, sizeof(bool), IPC_NOWAIT);
-
-	KierownikRezerwacja rezerwacja{REZERWACJE, {0, 0, 0, 0}};
-	msgsnd(msgid_kierownik, &rezerwacja, sizeof(Reserve), IPC_NOWAIT);
+	// //zamienić na poprawne użycie sem_op + flaga i msg_rcv + flaga
+	// unlock_sem(logger_semid, 1);
+	// unlock_sem(kasa_semid, 2);
+	// unlock_sem(semid_prac, 2);
+	//
+	// MsgText msg_logger{999, "0"};
+	//
+	// msgsnd(msgid_logger, &msg_logger, sizeof(msg_logger.text), IPC_NOWAIT);
+	//
+	// msg_zamowienie msg_zam;
+	// msg_zam.mtype = ZAMOWIENIE;
+	// msgsnd(msgid_zam, &msg_zam, sizeof(ZlozenieZamowienia), IPC_NOWAIT);
+	//
+	// msg_pracownik msg_pr;
+	// msg_zam.mtype = ZAMOWIENIE_PRACOWNIK;
+	// msgsnd(msgid_zam, &msg_pr, sizeof(ZamowieniePracownik), IPC_NOWAIT);
+	//
+	// KierownikStoly stoly = {EXTRA, false};
+	// msgsnd(msgid_kierownik, &stoly, sizeof(bool), IPC_NOWAIT);
+	//
+	// KierownikRezerwacja rezerwacja{REZERWACJE, {0, 0, 0, 0}};
+	// msgsnd(msgid_kierownik, &rezerwacja, sizeof(Reserve), IPC_NOWAIT);
 }
 
 void wyslij_sygnal(SharedMem *shared_mem_flags) {
@@ -156,7 +159,7 @@ void wyslij_sygnal(SharedMem *shared_mem_flags) {
 					}
 				}
 				rezerwacja = {REZERWACJE, r};
-				msg_send(msgid_kierownik, &rezerwacja, sizeof(KierownikRezerwacja), 0);
+				msg_send(msgid_kierownik, &rezerwacja, sizeof(rezerwacja.reserved), 0);
 				kill(mainprog_pid, SIGRTMIN + 2);
 				sem_op(semid_prac, 0, 1);
 				endl_loop = true;
@@ -181,16 +184,12 @@ int main(int argc, char *argv[]) {
 	else {
 		mainprog_pid = static_cast<pid_t>(std::stoi(argv[1]));
 	}
-	int shmid = shm_create(ftok(".", 'S'), sizeof(SharedMem) + sizeof(Table) * table_count, 0666);
+	int shmid = shm_create(ftok(".", 'S'), sizeof(SharedMem) + sizeof(Table) * table_count_max, 0666);
 	auto *base = static_cast<char *>(shm_attach(shmid, 0));
 
 	auto *shared_mem_flags = reinterpret_cast<SharedMem *>(base);
-	msgid_logger = msg_create(ftok(".", 'L'), 0666);
-	logger_semid = sem_create(ftok(".", 'P'), 1, 0666);
-	msgid_kierownik = msg_create(ftok(".", 'I'), 0666);
 	gen_semid = sem_create(ftok(".", 'G'), 3, 0666);
-	kasa_semid = sem_create(ftok(".", 'K'), 2, 0666);
-	msgid_zam = msg_create(ftok(".", 'Z'), 0666);
+	msgid_kierownik = msg_create(ftok(".", 'I'), 0666);
 	semid_prac = sem_create(ftok(".", 'W'), 2, 0666);
 
 	int a;
@@ -212,7 +211,7 @@ int main(int argc, char *argv[]) {
 			case 3:
 				shared_mem_flags->new_customers = false;
 				shared_mem_flags->end_program = true;
-				unlock_all();
+				kill(mainprog_pid, SIGINT);
 				break;
 			default:
 				continue;

@@ -17,11 +17,12 @@ pthread_mutex_t pids_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 int semid, msgid_logger;
 
+std::vector<pid_t> pids;
+
 int sig_pipe[2];
 
 struct ThreadArgs {
 	SharedMem *flags;
-	std::vector<int> *pids;
 };
 
 void sigchld_handler(int) {
@@ -31,15 +32,22 @@ void sigchld_handler(int) {
 }
 
 void handler(int sig) {
-	if (sig == SIGRTMIN || sig == SIGINT) {
+	if (sig == SIGRTMIN) {
 		fire_sig_flag = 1;
 		uint8_t b = 1;
 		ssize_t r = write(sig_pipe[1], &b, 1);
 		(void) r;
 	}
+	if (sig == SIGINT) {
+		pthread_mutex_lock(&pids_mutex);
+		for (auto pid: pids) {
+			kill(pid, SIGINT);
+		}
+		pthread_mutex_unlock(&pids_mutex);
+	}
 }
 
-void child_remove(std::vector<int> &pids) {
+void child_remove() {
 	while (true) {
 		pid_t pid = waitpid(-1, nullptr, WNOHANG);
 		if (pid <= 0) {
@@ -57,7 +65,7 @@ void *watek(void *arg) {
 
 	while (true) {
 		pthread_mutex_lock(&pids_mutex);
-		bool stop = args->flags->end_program && args->pids->empty();
+		bool stop = args->flags->end_program && pids.empty();
 		pthread_mutex_unlock(&pids_mutex);
 
 		if (stop) {
@@ -66,12 +74,12 @@ void *watek(void *arg) {
 
 		ssize_t r = pipe_recv(sig_pipe[0], &b, 1, &fire_sig_flag);
 
-		if (r == 0 || r == -1) {
+		if ((r == 0 || r == -1)) {
 			break;
 		}
 
 		pthread_mutex_lock(&pids_mutex);
-		child_remove(*args->pids);
+		child_remove();
 		pthread_mutex_unlock(&pids_mutex);
 	}
 
@@ -101,17 +109,13 @@ int main() {
 
 	semid = sem_create(ftok(".", 'G'), 3, 0666);
 	sem_op(semid, 0, 1);
-	sem_op(semid, 2, MAX_KLIENTOW);
+	sem_op(semid, 1, MAX_KLIENTOW);
 
 	msgid_logger = msg_create(ftok(".", 'L'), 0666);
-	int logger_semid = sem_create(ftok(".", 'P'), 1, 0666);
-	int msgid_zam = msg_create(ftok(".", 'Z'), 0666);
-	sem_op(logger_semid, 0, 1);
 
-	std::vector<int> pids;
-	int pid;
+	pid_t pid;
 
-	ThreadArgs thread_args{shared_mem_flags, &pids};
+	ThreadArgs thread_args{shared_mem_flags};
 
 	pthread_t tid;
 	if (pthread_create(&tid, nullptr, watek, &thread_args) != 0) {
@@ -119,10 +123,14 @@ int main() {
 	}
 
 	while (!shared_mem_flags->end_program && fire_sig_flag == 0) {
-		sem_op(semid, 0, -1, &fire_sig_flag);
+		if (sem_op(semid, 0, -1, &fire_sig_flag) == -1) {
+			break;
+		}
 		while (shared_mem_flags->new_customers && fire_sig_flag == 0) {
 			sleep(rand() % 10 + 1);
-			sem_op(semid, 2, -1, &fire_sig_flag);
+			if (sem_op(semid, 1, -1, &fire_sig_flag) == -1) {
+				break;
+			}
 			pid = fork();
 			if (pid == -1) {
 				perror("fork, generator klientow");
@@ -133,28 +141,18 @@ int main() {
 				exit(1);
 			}
 			else {
-				wyslij_log(msgid_logger, "Utworzono klienta");
 				pthread_mutex_lock(&pids_mutex);
 				pids.push_back(pid);
 				pthread_mutex_unlock(&pids_mutex);
 			}
 		}
 	}
-	if (fire_sig_flag == 1) {
-		msg_zwrot kill;
-		for (auto p: pids) {
-			kill.mtype = p;
-			kill.zwrot = {-2};
-			msg_send(msgid_zam, &kill, sizeof(ZamowienieZwrot), IPC_NOWAIT);
-		}
-	}
 	uint8_t b = 1;
 	write(sig_pipe[1], &b, 1);
 	pthread_join(tid, nullptr);
-	sem_op(semid, 1, 2);
+	sem_op(semid, 2, 2);
 	shared_mem_flags->all_customers_out = true;
-
-	sem_op(logger_semid, 0, -1);
+	wyslij_log(msgid_logger, "Klienci opuscili lokal, generator klientow konczy dzialanie", 4);
 
 	close(sig_pipe[0]);
 	close(sig_pipe[1]);

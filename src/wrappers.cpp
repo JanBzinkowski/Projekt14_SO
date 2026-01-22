@@ -1,5 +1,6 @@
 #include "../include/wrappers.h"
 #include <cstring>
+#include <iostream>
 
 void ipc_die(const char *msg) {
 	perror(msg);
@@ -48,25 +49,32 @@ void sem_set(int semid, int semnum, int val) {
 		ipc_die("semctl SETVAL");
 }
 
-void sem_op(int semid, int semnum, int op, volatile sig_atomic_t *flag) {
-	struct sembuf sb{};
-	sb.sem_num = static_cast<unsigned short>(semnum);
-	sb.sem_op = static_cast<short>(op);
-	sb.sem_flg = 0;
+int sem_op(int semid, int semnum, int op, volatile sig_atomic_t *flag, short int sem_flag) {
+	sembuf sb{
+		static_cast<unsigned short>(semnum),
+		static_cast<short>(op),
+		sem_flag
+	};
 
-	int ret;
-	do {
+	while (true) {
 		if (flag && *flag) {
-			return;
+			return -1;
 		}
-		ret = semop(semid, &sb, 1);
-		if (ret == -1 && errno == EINTR) {
-			return;
-		}
-	} while (ret == -1 && errno == EINTR);
 
-	if (ret == -1)
+		if (semop(semid, &sb, 1) == 0) {
+			return 0;
+		}
+
+		if (errno == EINTR) {
+			continue;
+		}
+
+		if (sem_flag & IPC_NOWAIT) {
+			return -1;
+		}
+
 		ipc_die("semop");
+	}
 }
 
 
@@ -102,21 +110,26 @@ void msg_send(int msgid, void *msg, size_t size, int flags) {
 }
 
 ssize_t msg_recv(int msgid, void *msg, size_t size, long type, int flags, volatile sig_atomic_t *sig_flag) {
-	ssize_t ret;
-	do {
+	while (true) {
 		if (sig_flag && *sig_flag) {
 			return -1;
 		}
-		ret = msgrcv(msgid, msg, size, type, flags);
-		if (ret == -1 && errno == EINTR) {
+
+		ssize_t ret = msgrcv(msgid, msg, size, type, flags);
+		if (ret >= 0) {
+			return ret;
+		}
+
+		if (errno == EINTR) {
+			continue;
+		}
+
+		if (flags & IPC_NOWAIT) {
 			return -1;
 		}
-	} while (ret == -1 && errno == EINTR);
 
-	if (ret == -1)
 		ipc_die("msgrcv");
-
-	return ret;
+	}
 }
 
 void msg_remove(int msgid) {
@@ -137,16 +150,20 @@ void wyslij_log(int logger_id, const std::string &tekst, long msgtype) {
 }
 
 ssize_t pipe_recv(int fd, void *buf, size_t count, volatile sig_atomic_t *sig_flag) {
-	ssize_t ret;
-	do {
-		ret = read(fd, buf, count);
-		if (ret == -1 && errno == EINTR && sig_flag && *sig_flag) {
+	while (true) {
+		if (sig_flag && *sig_flag) {
 			return -1;
 		}
-	} while (ret == -1 && errno == EINTR);
 
-	if (ret == -1) {
+		ssize_t ret = read(fd, buf, count);
+		if (ret >= 0) {
+			return ret;
+		}
+
+		if (errno == EINTR) {
+			continue;
+		}
+
 		ipc_die("read");
 	}
-	return ret;
 }

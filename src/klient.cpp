@@ -59,9 +59,8 @@ void zamowienie(ZlozenieZamowienia *zam, ZamowienieZwrot *zwrot) {
     semid = sem_create(ftok(".", 'K'), 2, 0666);
     sem_op(semid, 1, 1);
 
-    sem_op(semid, 0, -1, &sig_flag);
-    if (sig_flag) {
-        sem_op(semid, 0, 1);
+
+    if (sem_op(semid, 0, -1, &sig_flag) == -1) {
         return;
     }
 
@@ -114,8 +113,6 @@ int main() {
     srand(time(nullptr));
     msgid_logger = msg_create(ftok(".", 'L'), 0666);
     msgid_zam = msg_create(ftok(".", 'Z'), 0666);
-    int logger_semid = sem_create(ftok(".", 'P'), 1, 0666);
-    sem_op(logger_semid, 0, 1);
 
     ZlozenieZamowienia zam{};
     zam.pid = getpid();
@@ -141,7 +138,8 @@ int main() {
 
     wyslij_log(msgid_logger, "Grupa klientow zostala utworzona, rozmiar grupy: " + std::to_string(zam.liczba_osob));
 
-    ZamowienieZwrot zwrot{};
+    ZamowienieZwrot zwrot;
+    zwrot.nr_stolika = -1;
     zamowienie(&zam, &zwrot);
     if (sig_flag) {
         opuszczenie_lokalu(nullptr, &zam);
@@ -170,7 +168,6 @@ int main() {
 
     opuszczenie_lokalu(&zwrot, &zam);
 
-    sem_op(logger_semid, 0, -1);
 
     return 0;
 }

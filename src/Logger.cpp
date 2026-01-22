@@ -36,9 +36,9 @@ int main() {
 	std::cout << "Logger uruchomiony. Odbieranie wiadomości..." << std::endl;
 	log_file << "Logger uruchomiony. Odbieranie wiadomości..." << std::endl;
 
-	while (!shared_mem_flags->end_program && fire_flag == 0 && sem_getval(logger_semid, 0) > 0) {
+	while ((!shared_mem_flags->end_program || sem_getval(logger_semid, 0) > 0) && fire_flag == 0) {
 		MsgText msg{};
-		if (msg_recv(msgid, &msg, sizeof(msg.text), -1, 0, &fire_flag) > 0) {
+		if (msg_recv(msgid, &msg, sizeof(msg.text), -999, 0, &fire_flag) > 0) {
 			if (msg.mtype == 999) {
 				break;
 			}

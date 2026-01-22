@@ -10,6 +10,7 @@
 #define X4 x4
 
 extern int table_count;
+extern int table_count_max;
 
 extern int x1, x2, x3, x4;
 

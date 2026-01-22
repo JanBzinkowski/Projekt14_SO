@@ -12,7 +12,7 @@ std::vector<pid_t> pids;
 void handler(int sig) {
     if (sig == SIGINT) {
         for (pid_t pid: pids) {
-            kill(pid, SIGRTMIN);
+            kill(pid, SIGINT);
         }
     }
     else if (sig == SIGRTMIN) {
@@ -54,6 +54,8 @@ int main() {
     }
     size_t total_size = sizeof(SharedMem) + table_size;
 
+    table_count_max = static_cast<int>(table_size / sizeof(Table));
+
     int shmid = shm_create(ftok(".", 'S'), total_size, IPC_CREAT | 0666);
     void *base = shm_attach(shmid, 0);
 
@@ -66,7 +68,7 @@ int main() {
     shared_mem_flags->new_tables = false;
     shared_mem_flags->tables_array_size = table_size;
 
-    int semid = sem_create(ftok(".", 'M'), table_size / sizeof(Table), IPC_CREAT | 0666);
+    int semid = sem_create(ftok(".", 'M'), static_cast<int>(table_size / sizeof(Table)), IPC_CREAT | 0666);
 
     for (int i = 0; i < X1; i++) {
         table_array[i].max_osob = 1;
@@ -96,6 +98,7 @@ int main() {
     if (pid < 0)
         ipc_die("fork");
     if (pid == 0) {
+        sem_op(logger_semid, 0, 1);
         execl("./generator_klientow", "generator_klientow", NULL);
         ipc_die("exec logger");
     }
@@ -105,6 +108,7 @@ int main() {
     if (pid < 0)
         ipc_die("fork");
     if (pid == 0) {
+        sem_op(logger_semid, 0, 1);
         execl("./kasjer", "kasjer", NULL);
         ipc_die("exec kasjer");
     }
@@ -114,6 +118,7 @@ int main() {
     if (pid < 0)
         ipc_die("fork");
     if (pid == 0) {
+        sem_op(logger_semid, 0, 1);
         execl("./pracownik", "pracownik", NULL);
         ipc_die("exec pracownik");
     }
@@ -128,8 +133,12 @@ int main() {
     }
     pids.push_back(pid);
 
+
     for (const auto chpid: pids) {
         waitpid(chpid, nullptr, 0);
+        if (chpid != pids[3]) {
+            sem_op(logger_semid, 0, -1);
+        }
         std::cerr << "zakonczono: [" + std::to_string(chpid) + "]" << std::endl;
     }
 
