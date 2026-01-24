@@ -3,6 +3,8 @@
 #include <vector>
 #include <sys/wait.h>
 #include <sys/ipc.h>
+#include <cstring>
+
 #include "../include/wrappers.h"
 #include "../include/Shared_memory.h"
 #include "../include/Tables.h"
@@ -100,7 +102,7 @@ int main() {
     if (pid == 0) {
         sem_op(logger_semid, 0, 1);
         execl("./generator_klientow", "generator_klientow", NULL);
-        ipc_die("exec logger");
+        ipc_die("exec generator_klientow");
     }
     pids.push_back(pid);
 
@@ -129,13 +131,17 @@ int main() {
         ipc_die("fork");
     if (pid == 0) {
         execl("./logger", "logger", NULL);
-        ipc_die("exec generator_klientow");
+        ipc_die("exec logger");
     }
     pids.push_back(pid);
 
 
     for (const auto chpid: pids) {
-        waitpid(chpid, nullptr, 0);
+        pid_t ret;
+        do {
+            ret = waitpid(chpid, nullptr, 0);
+        } while (ret == -1 && errno == EINTR);
+
         if (chpid != pids[3]) {
             sem_op(logger_semid, 0, -1);
         }

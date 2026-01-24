@@ -32,32 +32,7 @@ void unlock_sem(int semid, int nsems) {
 	}
 }
 
-void unlock_all() {
-	// //zamienić na poprawne użycie sem_op + flaga i msg_rcv + flaga
-	// unlock_sem(logger_semid, 1);
-	// unlock_sem(kasa_semid, 2);
-	// unlock_sem(semid_prac, 2);
-	//
-	// MsgText msg_logger{999, "0"};
-	//
-	// msgsnd(msgid_logger, &msg_logger, sizeof(msg_logger.text), IPC_NOWAIT);
-	//
-	// msg_zamowienie msg_zam;
-	// msg_zam.mtype = ZAMOWIENIE;
-	// msgsnd(msgid_zam, &msg_zam, sizeof(ZlozenieZamowienia), IPC_NOWAIT);
-	//
-	// msg_pracownik msg_pr;
-	// msg_zam.mtype = ZAMOWIENIE_PRACOWNIK;
-	// msgsnd(msgid_zam, &msg_pr, sizeof(ZamowieniePracownik), IPC_NOWAIT);
-	//
-	// KierownikStoly stoly = {EXTRA, false};
-	// msgsnd(msgid_kierownik, &stoly, sizeof(bool), IPC_NOWAIT);
-	//
-	// KierownikRezerwacja rezerwacja{REZERWACJE, {0, 0, 0, 0}};
-	// msgsnd(msgid_kierownik, &rezerwacja, sizeof(Reserve), IPC_NOWAIT);
-}
-
-void wyslij_sygnal(SharedMem *shared_mem_flags) {
+int wyslij_sygnal(SharedMem *shared_mem_flags) {
 	struct sigaction sa{};
 	sa.sa_handler = handler;
 	sigemptyset(&sa.sa_mask);
@@ -167,14 +142,13 @@ void wyslij_sygnal(SharedMem *shared_mem_flags) {
 
 			case 3:
 				kill(mainprog_pid, SIGRTMIN);
-				unlock_all();
-				endl_loop = true;
-				break;
+				return 1;
 
 			default:
 				continue;
 		}
 	}
+	return 0;
 }
 
 int main(int argc, char *argv[]) {
@@ -198,7 +172,10 @@ int main(int argc, char *argv[]) {
 		std::cin >> a;
 		switch (a) {
 			case 1:
-				wyslij_sygnal(shared_mem_flags);
+				if (wyslij_sygnal(shared_mem_flags) == 1) {
+					shm_detach(base);
+					return 0;
+				}
 				break;
 			case 2:
 				if (shared_mem_flags->new_customers) {
@@ -219,4 +196,5 @@ int main(int argc, char *argv[]) {
 	}
 
 	shm_detach(base);
+	return 0;
 }

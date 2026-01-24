@@ -104,7 +104,7 @@ int main() {
 	sigaction(SIGINT, &sa, nullptr);
 	sigaction(SIGCHLD, &sa_child, nullptr);
 
-	int shmid = shm_create(ftok(".", 'S'), sizeof(SharedMem), 0);
+	int shmid = shm_create(ftok(".", 'S'), sizeof(SharedMem), 0666);
 	auto *shared_mem_flags = static_cast<SharedMem *>(shm_attach(shmid, 0));
 
 	semid = sem_create(ftok(".", 'G'), 3, 0666);

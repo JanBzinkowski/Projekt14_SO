@@ -70,7 +70,7 @@ ssize_t msg_recv(int msgid, void *msg, size_t size, long type, int flags, volati
 
 void msg_remove(int msgid);
 
-void wyslij_log(int logger_id, const std::string &tekst);
+void wyslij_log(int logger_id, const std::string &tekst, long msgtype = 1);
 
 ssize_t pipe_recv(int fd, void *buf, size_t count, volatile sig_atomic_t *sig_flag = nullptr);
 

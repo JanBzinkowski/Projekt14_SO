@@ -10,8 +10,8 @@
 #include "../include/Tables.h"
 #include "../include/wrappers.h"
 
-int shmid, semid, msgid_zam, msgid_zwrot;
-int msgid_logger, semid_logger;
+int shmid, semid, msgid_zam;
+int msgid_logger;
 
 volatile sig_atomic_t sig_flag = 0;
 
@@ -56,7 +56,6 @@ void zwrot_naczyn(ZamowienieZwrot *zwrot) {
 }
 
 void zamowienie(ZlozenieZamowienia *zam, ZamowienieZwrot *zwrot) {
-    semid = sem_create(ftok(".", 'K'), 2, 0666);
     sem_op(semid, 1, 1);
 
 
@@ -113,6 +112,7 @@ int main() {
     srand(time(nullptr));
     msgid_logger = msg_create(ftok(".", 'L'), 0666);
     msgid_zam = msg_create(ftok(".", 'Z'), 0666);
+    semid = sem_create(ftok(".", 'K'), 2, 0666);
 
     ZlozenieZamowienia zam{};
     zam.pid = getpid();
