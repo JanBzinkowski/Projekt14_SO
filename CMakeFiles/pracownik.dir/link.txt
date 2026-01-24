@@ -1,1 +1,0 @@
-/usr/bin/c++ CMakeFiles/pracownik.dir/src/pracownik.cpp.o CMakeFiles/pracownik.dir/src/wrappers.cpp.o CMakeFiles/pracownik.dir/src/Tables.cpp.o -o pracownik 

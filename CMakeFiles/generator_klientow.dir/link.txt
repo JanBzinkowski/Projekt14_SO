@@ -1,1 +1,0 @@
-/usr/bin/c++ CMakeFiles/generator_klientow.dir/src/generator_klientow.cpp.o CMakeFiles/generator_klientow.dir/src/wrappers.cpp.o CMakeFiles/generator_klientow.dir/src/Tables.cpp.o -o generator_klientow 

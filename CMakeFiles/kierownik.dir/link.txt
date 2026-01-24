@@ -1,1 +1,0 @@
-/usr/bin/c++ CMakeFiles/kierownik.dir/src/kierownik.cpp.o CMakeFiles/kierownik.dir/src/wrappers.cpp.o CMakeFiles/kierownik.dir/src/Tables.cpp.o -o kierownik 
