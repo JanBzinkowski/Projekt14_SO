@@ -44,19 +44,17 @@ int main() {
     int msgid_logger = msg_create(ftok(".", 'L'), 0666 | IPC_CREAT);
     int logger_semid = sem_create(ftok(".", 'P'), 1, IPC_CREAT | 0666);
     int msgid_kierownik = msg_create(ftok(".", 'I'), 0666 | IPC_CREAT);
-    int gen_semid = sem_create(ftok(".", 'G'), 3, 0666 | IPC_CREAT);
+    int gen_semid = sem_create(ftok(".", 'G'), 4, 0666 | IPC_CREAT);
     int kasa_semid = sem_create(ftok(".", 'K'), 2, IPC_CREAT | 0666);
     int msgid_zam = msg_create(ftok(".", 'Z'), IPC_CREAT | 0666);
     int semid_prac = sem_create(ftok(".", 'W'), 2, 0666 | IPC_CREAT);
     sem_op(semid_prac, 1, 1);
 
-    size_t table_size = sizeof(Table) * (table_count + X3 * 2);
-    if (X3 == 0) {
-        table_size += sizeof(Table);
-    }
-    size_t total_size = sizeof(SharedMem) + table_size;
+    int max_x3 = (X3 == 0) ? 1 : (X3 * 2);
+    table_count_max = X1 + X2 + max_x3 + X4;
 
-    table_count_max = static_cast<int>(table_size / sizeof(Table));
+    size_t table_size = sizeof(Table) * table_count_max;
+    size_t total_size = sizeof(SharedMem) + table_size;
 
     int shmid = shm_create(ftok(".", 'S'), total_size, IPC_CREAT | 0666);
     void *base = shm_attach(shmid, 0);
@@ -105,6 +103,7 @@ int main() {
         ipc_die("exec generator_klientow");
     }
     pids.push_back(pid);
+    std::cerr << "Uruchomiono generator klientow: [" + std::to_string(pid) + "]" << std::endl;
 
     pid = fork();
     if (pid < 0)
@@ -115,6 +114,7 @@ int main() {
         ipc_die("exec kasjer");
     }
     pids.push_back(pid);
+    std::cerr << "Uruchomiono kasjera: [" + std::to_string(pid) + "]" << std::endl;
 
     pid = fork();
     if (pid < 0)
@@ -125,6 +125,7 @@ int main() {
         ipc_die("exec pracownik");
     }
     pids.push_back(pid);
+    std::cerr << "Uruchomiono pracownika: [" + std::to_string(pid) + "]" << std::endl;
 
     pid = fork();
     if (pid < 0)
@@ -134,7 +135,7 @@ int main() {
         ipc_die("exec logger");
     }
     pids.push_back(pid);
-
+    std::cerr << "Uruchomiono logger: [" + std::to_string(pid) + "]" << std::endl;
 
     for (const auto chpid: pids) {
         pid_t ret;

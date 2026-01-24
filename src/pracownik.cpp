@@ -34,51 +34,49 @@ void rezerwacje(KierownikRezerwacja &rezerwacja, Table *table, SharedMem *mem_fl
 	if (sem_op(semid, 1, -1, &fire_sig_flag)) {
 		return;
 	}
+
 	for (int i = 0; i < rezerwacja.reserved.x1 && i < X1; i++)
 		table[i].zarezerwowany = true;
 
 	for (int i = X1; i < X1 + rezerwacja.reserved.x2 && i < X1 + X2; i++)
 		table[i].zarezerwowany = true;
 
-	if (!mem_flags->new_tables) {
-		int start3 = X1 + X2;
-		for (int i = start3; i < start3 + rezerwacja.reserved.x3 && i < start3 + X3; i++)
-			table[i].zarezerwowany = true;
+	int start3 = X1 + X2;
 
-		int start4 = X1 + X2 + X3;
-		for (int i = start4; i < start4 + rezerwacja.reserved.x4 && i < start4 + X4; i++)
+	if (!mem_flags->new_tables) {
+		for (int i = start3; i < start3 + rezerwacja.reserved.x3 && i < start3 + X3; i++)
 			table[i].zarezerwowany = true;
 	}
 	else {
-		int old3 = X3 / 2;
-		int start3_old = X1 + X2;
-		for (int i = start3_old; i < start3_old + std::min(rezerwacja.reserved.x3, old3); i++)
+		int added3 = (X3 == 0 ? 1 : X3);
+
+		int reserved_base3 = std::min(rezerwacja.reserved.x3, X3);
+		for (int i = start3; i < start3 + reserved_base3; i++)
 			table[i].zarezerwowany = true;
 
-		int start4 = start3_old + old3;
-		for (int i = start4; i < start4 + std::min(rezerwacja.reserved.x4, X4); i++)
-			table[i].zarezerwowany = true;
-
-		int new3_count = old3 + (X3 % 2);
-		int start3_new = start4 + X4;
-		for (int i = start3_new; i < start3_new + std::min(rezerwacja.reserved.x3 - old3, new3_count); i++) {
-			table[i].zarezerwowany = true;
+		int reserved_extra3 = rezerwacja.reserved.x3 - reserved_base3;
+		if (reserved_extra3 > 0) {
+			int start3_extra = table_count - added3;
+			for (int i = start3_extra; i < start3_extra + std::min(reserved_extra3, added3); i++)
+				table[i].zarezerwowany = true;
 		}
 	}
+
+	int start4 = X1 + X2 + X3;
+	for (int i = start4; i < start4 + rezerwacja.reserved.x4 && i < start4 + X4; i++)
+		table[i].zarezerwowany = true;
+
 	sem_op(semid, 1, 1);
 }
 
 
 void extra(Table * &table) {
-	if (X3 == 0) {
-		X3 = 1;
-	}
-	for (int i = table_count; i < table_count + X3; i++) {
+	for (int i = table_count; i < table_count + (X3 == 0 ? 1 : X3); i++) {
 		table[i].max_osob = 3;
 		table[i].zarezerwowany = false;
 		table[i].rozmiar_grupy = 0;
 	}
-	table_count += X3;
+	table_count += (X3 == 0 ? 1 : X3);
 }
 
 void zamowienie() {
@@ -126,7 +124,7 @@ int main() {
 	msgid_zam = msg_create(ftok(".", 'Z'), 0666);
 	msgid_logger = msg_create(ftok(".", 'L'), 0666);
 	semid = sem_create(ftok(".", 'W'), 2, 0666);
-	semid_gk = sem_create(ftok(".", 'G'), 3, 0666);
+	semid_gk = sem_create(ftok(".", 'G'), 4, 0666);
 	msgid_kierownik = msg_create(ftok(".", 'I'), 0666);
 
 	wyslij_log(msgid_logger, "Pracownik rozpoczyna prace");

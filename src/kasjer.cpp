@@ -23,9 +23,15 @@ void handler(int const sig) {
     }
 }
 
-bool sprawdz_stolik(int &index, Table *table_array, ZlozenieZamowienia const &zam) {
+bool sprawdz_stolik(int &index, Table *table_array, ZlozenieZamowienia const &zam, SharedMem *mem_flags) {
     if (zam.liczba_osob <= 2) {
-        for (index = X1 + X2 - 1; index < table_count; index++) {
+        if (zam.liczba_osob == 1) {
+            index = X1;
+        }
+        else {
+            index = X1 + X2 + X3;
+        }
+        for (; index < table_count; index++) {
             if (sem_op(semid_prac, 1, -1, &exception_flag) == -1) {
                 return false;
             }
@@ -71,7 +77,7 @@ bool sprawdz_stolik(int &index, Table *table_array, ZlozenieZamowienia const &za
     return false;
 }
 
-void zamowienie(Table *table_array, std::vector<ZlozenieZamowienia> *kolejka, bool const nowa_wiadomosc = true) {
+void zamowienie(Table *table_array, std::vector<ZlozenieZamowienia> *kolejka, SharedMem *mem_flags, bool const nowa_wiadomosc = true) {
     msg_zamowienie msg{};
     ZlozenieZamowienia wybrane;
     bool ma_wybrane = false;
@@ -89,14 +95,14 @@ void zamowienie(Table *table_array, std::vector<ZlozenieZamowienia> *kolejka, bo
     int index = -1;
 
     if (ma_wybrane) {
-        if (!sprawdz_stolik(index, table_array, wybrane)) {
+        if (!sprawdz_stolik(index, table_array, wybrane, mem_flags)) {
             kolejka->push_back(wybrane);
         }
     }
 
     if (index == -1) {
         for (auto it = kolejka->begin(); it != kolejka->end(); ++it) {
-            if (sprawdz_stolik(index, table_array, *it)) {
+            if (sprawdz_stolik(index, table_array, *it, mem_flags)) {
                 wybrane = *it;
                 kolejka->erase(it);
                 break;
@@ -139,7 +145,7 @@ int main() {
     msgid_zam = msg_create(ftok(".", 'Z'), 0666);
     msgid_logger = msg_create(ftok(".", 'L'), 0666);
     semid_prac = sem_create(ftok(".", 'W'), 2, 0666);
-    semid_gk = sem_create(ftok(".", 'G'), 3, 0666);
+    semid_gk = sem_create(ftok(".", 'G'), 4, 0666);
     table_sem_id = sem_create(ftok(".", 'M'), static_cast<int>(shared_mem_flags->tables_array_size / sizeof(Table)), 0666);
 
     wyslij_log(msgid_logger, "Kasjer rozpoczyna prace");
@@ -155,7 +161,7 @@ int main() {
                 if (exception_flag == 1) {
                     break;
                 }
-                zamowienie(table_array, &kolejka, false);
+                zamowienie(table_array, &kolejka, shared_mem_flags, false);
                 last_handle = clock::now();
                 continue;
             }
@@ -166,7 +172,7 @@ int main() {
         if (sem_op(semid, 1, -1, &exception_flag) == -1) {
             break;
         }
-        zamowienie(table_array, &kolejka);
+        zamowienie(table_array, &kolejka, shared_mem_flags);
         last_handle = clock::now();
     }
 

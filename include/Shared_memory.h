@@ -4,6 +4,7 @@
 #include <cctype>
 
 #define MAX_KLIENTOW 10000
+#define MAX_KLIENTOW_W_RRESTAURACJI 120
 
 struct SharedMem {
 	int8_t new_customers = true;

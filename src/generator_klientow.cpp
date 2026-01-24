@@ -34,7 +34,7 @@ void sigchld_handler(int) {
 void handler(int sig) {
 	if (sig == SIGRTMIN) {
 		fire_sig_flag = 1;
-		uint8_t b = 1;
+		uint8_t b = 2;
 		ssize_t r = write(sig_pipe[1], &b, 1);
 		(void) r;
 	}
@@ -54,8 +54,8 @@ void child_remove() {
 			break;
 		}
 		pids.erase(std::remove(pids.begin(), pids.end(), pid), pids.end());
-		sem_op(semid, 2, 1);
-		wyslij_log(msgid_logger, "Usunięto klienta");
+		sem_op(semid, 1, 1);
+		wyslij_log(msgid_logger, "Usunięto klienta: [" + std::to_string(pid) + "]", 4);
 	}
 }
 
@@ -64,6 +64,20 @@ void *watek(void *arg) {
 	uint8_t b;
 
 	while (true) {
+		ssize_t r = pipe_recv(sig_pipe[0], &b, 1, &fire_sig_flag);
+
+		if (r <= 0) {
+			break;
+		}
+
+		if (b == 2) {
+			break;
+		}
+
+		pthread_mutex_lock(&pids_mutex);
+		child_remove();
+		pthread_mutex_unlock(&pids_mutex);
+
 		pthread_mutex_lock(&pids_mutex);
 		bool stop = args->flags->end_program && pids.empty();
 		pthread_mutex_unlock(&pids_mutex);
@@ -71,16 +85,6 @@ void *watek(void *arg) {
 		if (stop) {
 			break;
 		}
-
-		ssize_t r = pipe_recv(sig_pipe[0], &b, 1, &fire_sig_flag);
-
-		if ((r == 0 || r == -1)) {
-			break;
-		}
-
-		pthread_mutex_lock(&pids_mutex);
-		child_remove();
-		pthread_mutex_unlock(&pids_mutex);
 	}
 
 	return nullptr;
@@ -99,7 +103,6 @@ int main() {
 	if (pipe(sig_pipe) == -1) {
 		ipc_die("pipe");
 	}
-	fcntl(sig_pipe[1], F_SETFL, O_NONBLOCK);
 
 	sigaction(SIGINT, &sa, nullptr);
 	sigaction(SIGCHLD, &sa_child, nullptr);
@@ -107,9 +110,11 @@ int main() {
 	int shmid = shm_create(ftok(".", 'S'), sizeof(SharedMem), 0666);
 	auto *shared_mem_flags = static_cast<SharedMem *>(shm_attach(shmid, 0));
 
-	semid = sem_create(ftok(".", 'G'), 3, 0666);
-	sem_op(semid, 0, 1);
-	sem_op(semid, 1, MAX_KLIENTOW);
+	semid = sem_create(ftok(".", 'G'), 4, 0666);
+	sem_set(semid, 0, 1);
+	sem_set(semid, 1, MAX_KLIENTOW);
+	sem_set(semid, 2, 0);
+	sem_set(semid, 3, MAX_KLIENTOW_W_RRESTAURACJI);
 
 	msgid_logger = msg_create(ftok(".", 'L'), 0666);
 
@@ -127,7 +132,7 @@ int main() {
 			break;
 		}
 		while (shared_mem_flags->new_customers && fire_sig_flag == 0) {
-			sleep(rand() % 10 + 1);
+			//sleep(rand() % 10 + 1);
 			if (sem_op(semid, 1, -1, &fire_sig_flag) == -1) {
 				break;
 			}
@@ -138,18 +143,25 @@ int main() {
 			else if (pid == 0) {
 				execl("./klient", "klient", NULL);
 				perror("execl");
-				exit(1);
+				_exit(1);
 			}
 			else {
 				pthread_mutex_lock(&pids_mutex);
 				pids.push_back(pid);
 				pthread_mutex_unlock(&pids_mutex);
+				wyslij_log(msgid_logger, "Utworzono klienta: [" + std::to_string(pid) + "]", 4);
 			}
 		}
 	}
-	uint8_t b = 1;
+	uint8_t b = 2;
 	write(sig_pipe[1], &b, 1);
 	pthread_join(tid, nullptr);
+	if (!pids.empty()) {
+		for (auto pid: pids) {
+			kill(pid, SIGINT);
+			waitpid(pid, nullptr, 0);
+		}
+	}
 	sem_op(semid, 2, 2);
 	shared_mem_flags->all_customers_out = true;
 	wyslij_log(msgid_logger, "Klienci opuscili lokal, generator klientow konczy dzialanie", 4);
@@ -158,6 +170,5 @@ int main() {
 	close(sig_pipe[1]);
 
 	shm_detach(shared_mem_flags);
-	sem_remove(semid);
 	return 0;
 }

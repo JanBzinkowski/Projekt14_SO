@@ -162,7 +162,7 @@ int main(int argc, char *argv[]) {
 	auto *base = static_cast<char *>(shm_attach(shmid, 0));
 
 	auto *shared_mem_flags = reinterpret_cast<SharedMem *>(base);
-	gen_semid = sem_create(ftok(".", 'G'), 3, 0666);
+	gen_semid = sem_create(ftok(".", 'G'), 4, 0666);
 	msgid_kierownik = msg_create(ftok(".", 'I'), 0666);
 	semid_prac = sem_create(ftok(".", 'W'), 2, 0666);
 

@@ -66,8 +66,12 @@ int sem_op(int semid, int semnum, int op, volatile sig_atomic_t *flag, short int
 		}
 
 		if (errno == EINTR) {
+			if (flag && *flag) {
+				return -1;
+			}
 			continue;
 		}
+
 
 		if (sem_flag & IPC_NOWAIT) {
 			return -1;

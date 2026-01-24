@@ -10,7 +10,7 @@
 #include "../include/Tables.h"
 #include "../include/wrappers.h"
 
-int shmid, semid, msgid_zam;
+int shmid, semid, msgid_zam, genid;
 int msgid_logger;
 
 volatile sig_atomic_t sig_flag = 0;
@@ -34,10 +34,10 @@ void *decyzja_menu(void *args) {
 
 void *jedzenie(void *args) {
     auto zamowienie = (ThreadArgs *) args;
-    sleep(zamowienie->zamowienie->nr_pozycji_menu);
+    //sleep(zamowienie->zamowienie->nr_pozycji_menu);
     wyslij_log(msgid_logger, "Klient skonczyl jesc danie.", 2);
 
-    sleep(zamowienie->zamowienie->nr_napoju);
+    //sleep(zamowienie->zamowienie->nr_napoju);
     wyslij_log(msgid_logger, "Klient skonczyl pic napoj.", 2);
     return nullptr;
 }
@@ -47,11 +47,13 @@ void opuszczenie_lokalu(ZamowienieZwrot *zwrot, ZlozenieZamowienia *zam) {
         int table_sem_id = sem_create(ftok(".", 'M'), table_count, 0666);
         sem_op(table_sem_id, zwrot->nr_stolika, zam->liczba_osob);
     }
-    wyslij_log(msgid_logger, "Grupa klientow opuscila restauracje, stolik nr: " + (zwrot ? std::to_string(zwrot->nr_stolika) : "brak zamowienia") + ", rozmiar grupy: " + std::to_string(zam->liczba_osob));
+    if (sig_flag == 0) {
+        wyslij_log(msgid_logger, "Grupa klientow opuscila restauracje, stolik nr: " + (zwrot ? std::to_string(zwrot->nr_stolika) : "brak zamowienia") + ", rozmiar grupy: " + std::to_string(zam->liczba_osob));
+    }
 }
 
 void zwrot_naczyn(ZamowienieZwrot *zwrot) {
-    sleep(2);
+    //sleep(2);
     wyslij_log(msgid_logger, "Grupa klientow oddala naczynia, stolik nr: " + std::to_string(zwrot->nr_stolika));
 }
 
@@ -113,6 +115,11 @@ int main() {
     msgid_logger = msg_create(ftok(".", 'L'), 0666);
     msgid_zam = msg_create(ftok(".", 'Z'), 0666);
     semid = sem_create(ftok(".", 'K'), 2, 0666);
+    genid = sem_create(ftok(".", 'G'), 4, 0666);
+
+    if (sem_op(genid, 3, -1, &sig_flag, SEM_UNDO) == -1) {
+        return 0;
+    }
 
     ZlozenieZamowienia zam{};
     zam.pid = getpid();
