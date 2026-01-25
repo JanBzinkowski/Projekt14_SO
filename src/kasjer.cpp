@@ -49,11 +49,11 @@ bool sprawdz_stolik(int &index, Table *table_array, ZlozenieZamowienia const &za
                 continue;
             }
 
-            if (sem_op(table_sem_id, index, -zam.liczba_osob, nullptr, SEM_UNDO | IPC_NOWAIT) == -1) {
+            if (sem_op(table_sem_id, index, -zam.liczba_osob, nullptr, IPC_NOWAIT) == -1) {
                 continue;
             }
 
-            wyslij_log(msgid_logger, "Kasjer znalazl stolik nr: " + std::to_string(index) + " dla grupy. Stolik " + std::to_string(table_array[index].max_osob) + " osobowy");
+            wyslij_log(msgid_logger, "Kasjer znalazl stolik nr: " + std::to_string(index) + " dla grupy. Stolik " + std::to_string(table_array[index].max_osob) + " osobowy", 1);
 
             return true;
         }
@@ -63,7 +63,7 @@ bool sprawdz_stolik(int &index, Table *table_array, ZlozenieZamowienia const &za
             return false;
         }
 
-        bool ok = !table_array[index].zarezerwowany && (table_array[index].rozmiar_grupy == 0);
+        bool ok = !table_array[index].zarezerwowany && sem_getval(table_sem_id, index) >= zam.liczba_osob;
 
         sem_op(semid_prac, 1, 1);
 
@@ -71,14 +71,15 @@ bool sprawdz_stolik(int &index, Table *table_array, ZlozenieZamowienia const &za
             continue;
         }
 
-        if (sem_op(table_sem_id, index, -zam.liczba_osob, nullptr, SEM_UNDO | IPC_NOWAIT) == -1) {
+        if (sem_op(table_sem_id, index, -zam.liczba_osob, nullptr, IPC_NOWAIT) == -1) {
             continue;
         }
 
-        wyslij_log(msgid_logger, "Kasjer znalazl stolik nr: " + std::to_string(index) + " dla grupy. Stolik " + std::to_string(table_array[index].max_osob) + " osobowy");
+        wyslij_log(msgid_logger, "Kasjer znalazl stolik nr: " + std::to_string(index) + " dla grupy. Stolik " + std::to_string(table_array[index].max_osob) + " osobowy", 1);
 
         return true;
     }
+    index = -1;
     return false;
 }
 
@@ -95,7 +96,7 @@ void zamowienie(Table *table_array, std::vector<ZlozenieZamowienia> *kolejka, Sh
         ma_wybrane = true;
     }
 
-    wyslij_log(msgid_logger, "Kasjer rozpoczyna obsluge klienta");
+    wyslij_log(msgid_logger, "Kasjer rozpoczyna obsluge klienta", 1);
 
     int index = -1;
 
@@ -116,7 +117,7 @@ void zamowienie(Table *table_array, std::vector<ZlozenieZamowienia> *kolejka, Sh
     }
 
     if (index == -1) {
-        wyslij_log(msgid_logger, "Kasjer nie znal stolika dla grupy");
+        wyslij_log(msgid_logger, "Kasjer nie znal stolika dla grupy", 1);
         return;
     }
 
@@ -129,7 +130,7 @@ void zamowienie(Table *table_array, std::vector<ZlozenieZamowienia> *kolejka, Sh
     msg_send(msgid_zam, &pracownik, sizeof(pracownik.zwrot), 0);
     sem_op(semid_prac, 0, 1);
 
-    wyslij_log(msgid_logger, "Kasjer skonczyl obsluge klienta. Przydzielony stolik: " + std::to_string(index));
+    wyslij_log(msgid_logger, "Kasjer skonczyl obsluge klienta. Przydzielony stolik: " + std::to_string(index), 1);
 }
 
 
@@ -157,7 +158,7 @@ int main() {
     semid_gk = sem_create(ftok(".", 'G'), 4, 0666);
     table_sem_id = sem_create(ftok(".", 'M'), static_cast<int>(shared_mem_flags->tables_array_size / sizeof(Table)), 0666);
 
-    wyslij_log(msgid_logger, "Kasjer rozpoczyna prace");
+    wyslij_log(msgid_logger, "Kasjer rozpoczyna prace", 1);
 
     std::vector<ZlozenieZamowienia> kolejka;
 
@@ -186,10 +187,10 @@ int main() {
     }
 
     if (exception_flag == 1) {
-        wyslij_log(msgid_logger, "Kasjer czeka az klienci sie ewakuuja", 4);
+        wyslij_log(msgid_logger, "Kasjer czeka az klienci sie ewakuuja", 5);
     }
     else {
-        wyslij_log(msgid_logger, "Kasjer czeka az klienci opuszcza lokal", 4);
+        wyslij_log(msgid_logger, "Kasjer czeka az klienci opuszcza lokal", 5);
     }
 
 
@@ -197,7 +198,7 @@ int main() {
 
     zamkniecie_kasy(shared_mem_flags);
 
-    wyslij_log(msgid_logger, "Kasjer konczy prace", 4);
+    wyslij_log(msgid_logger, "Kasjer konczy prace", 5);
 
     shm_detach(base);
     return 0;

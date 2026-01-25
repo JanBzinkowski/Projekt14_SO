@@ -89,7 +89,7 @@ void zamowienie() {
 		return;
 	}
 
-	wyslij_log(msgid_logger, "Pracownik rozpoczyna obsluge klienta. Przydzielony stolik: stolik nr. " + std::to_string(msg.zwrot.nr_stolika));
+	wyslij_log(msgid_logger, "Pracownik rozpoczyna obsluge klienta. Przydzielony stolik: stolik nr. " + std::to_string(msg.zwrot.nr_stolika), 3);
 
 	msg_zwrot zw{};
 	zw.mtype = msg.zwrot.pid;
@@ -98,10 +98,10 @@ void zamowienie() {
 	msg_send(msgid_zam, &zw, sizeof(zw.zwrot), 0);
 
 	if (zw.zwrot.nr_stolika != -1) {
-		wyslij_log(msgid_logger, "Pracownik wydal zamowienie, stolik nr: " + std::to_string(zw.zwrot.nr_stolika));
+		wyslij_log(msgid_logger, "Pracownik wydal zamowienie, stolik nr: " + std::to_string(zw.zwrot.nr_stolika), 3);
 	}
 	else {
-		wyslij_log(msgid_logger, "Pracownik nie wydał zamowienia, brak miejsca w restauracji");
+		wyslij_log(msgid_logger, "Pracownik nie wydał zamowienia, brak miejsca w restauracji", 3);
 	}
 }
 
@@ -127,16 +127,16 @@ int main() {
 	semid_gk = sem_create(ftok(".", 'G'), 4, 0666);
 	msgid_kierownik = msg_create(ftok(".", 'I'), 0666);
 
-	wyslij_log(msgid_logger, "Pracownik rozpoczyna prace");
+	wyslij_log(msgid_logger, "Pracownik rozpoczyna prace", 3);
 
 	while (!shared_mem_flags->end_program && fire_sig_flag == 0 && !shared_mem_flags->all_customers_out) {
 		if (sem_op(semid, 0, -1, &sig_flag) == -1) {
 			if (sig_flag == 4) {
-				wyslij_log(msgid_logger, "Pracownik czeka na wyjscie wszystkich klientow", 4);
+				wyslij_log(msgid_logger, "Pracownik czeka na wyjscie wszystkich klientow", 3);
 				break;
 			}
 			if (sig_flag == 3) {
-				wyslij_log(msgid_logger, "Pracownik czeka na ewakuacje klientow", 4);
+				wyslij_log(msgid_logger, "Pracownik czeka na ewakuacje klientow", 3);
 				break;
 			}
 		}
@@ -157,8 +157,9 @@ int main() {
 		zamowienie();
 	}
 
+	wyslij_log(msgid_logger, "Pracownik czeka az klienci opuszcza lokal", 5);
 	sem_op(semid_gk, 2, -1);
-	wyslij_log(msgid_logger, "Pracownik konczy prace", 4);
+	wyslij_log(msgid_logger, "Pracownik konczy prace", 5);
 
 	shm_detach(base);
 

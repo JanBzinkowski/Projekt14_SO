@@ -37,8 +37,7 @@ void handler(int sig) {
 	}
 }
 
-void *watek(void *arg) {
-	//auto args = static_cast<ThreadArgs *>(arg);
+void watek() {
 	int status;
 	while (true) {
 		pid_t zakonczony = waitpid(-1, &status, 0);
@@ -62,7 +61,6 @@ void *watek(void *arg) {
 			break;
 		}
 	}
-	return nullptr;
 }
 
 int main() {
@@ -93,10 +91,12 @@ int main() {
 	msgid_logger = msg_create(ftok(".", 'L'), 0666);
 
 	pid_t pid;
-	pthread_t tid;
-	ThreadArgs thread_args{shared_mem_flags};
-	if (pthread_create(&tid, nullptr, watek, &thread_args) != 0) {
-		ipc_die("pthread_create");
+	std::thread tid;
+	try {
+		tid = std::thread(watek);
+	}
+	catch (...) {
+		ipc_die("std::thread");
 	}
 
 	while (!shared_mem_flags->end_program && fire_sig_flag == 0) {
@@ -137,7 +137,8 @@ int main() {
 		}
 		pthread_mutex_unlock(&pids_mutex);
 	}
-	pthread_join(tid, nullptr);
+	if (tid.joinable())
+		tid.join();
 	sem_op(semid, 2, 2);
 	shared_mem_flags->all_customers_out = true;
 	wyslij_log(msgid_logger, "Klienci opuscili lokal, generator klientow konczy dzialanie", 4);
