@@ -77,12 +77,15 @@ void opuszczenie_lokalu(ZamowienieZwrot *zwrot, ZlozenieZamowienia *zam, Table *
         if (sem_op(semid_prac, 1, -1, &sig_flag) == -1) {
             return;
         }
-        table[zwrot->nr_stolika].rozmiar_grupy = 0;
+        if (sem_getval(table_sem_id, zwrot->nr_stolika) == table[zwrot->nr_stolika].max_osob) {
+            table[zwrot->nr_stolika].rozmiar_grupy = 0;
+        }
         sem_op(semid_prac, 1, 1);
     }
     if (sig_flag == 0) {
         wyslij_log(msgid_logger, "Grupa klientow opuscila restauracje, stolik nr: " + (zwrot ? std::to_string(zwrot->nr_stolika) : "brak zamowienia") + ", rozmiar grupy: " + std::to_string(zam->liczba_osob), 2);
     }
+    sem_op(genid, 3, 1);
 }
 
 void zwrot_naczyn(ZamowienieZwrot *zwrot) {
@@ -154,7 +157,7 @@ int main() {
     semid = sem_create(ftok(".", 'K'), 2, 0666);
     genid = sem_create(ftok(".", 'G'), 4, 0666);
 
-    if (sem_op(genid, 3, -1, &sig_flag, SEM_UNDO) == -1) {
+    if (sem_op(genid, 3, -1, &sig_flag) == -1) {
         return 0;
     }
 
@@ -192,6 +195,7 @@ int main() {
     }
     if (zwrot.nr_stolika < 0) {
         wyslij_log(msgid_logger, "Klient nie znalazl stolika i wyszedl. [" + std::to_string(getpid()) + "]", 2);
+        sem_op(genid, 3, 1);
         shm_detach(base);
         return 0;
     }

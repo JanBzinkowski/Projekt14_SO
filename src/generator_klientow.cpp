@@ -7,11 +7,10 @@
 #include <sys/wait.h>
 #include <algorithm>
 #include <fcntl.h>
+#include <filesystem>
 
-#include "../../../../../usr/include/c++/11/filesystem"
 #include "../include/wrappers.h"
 #include "../include/Shared_memory.h"
-#include "../include/zamowienie.h"
 
 volatile sig_atomic_t fire_sig_flag = 0;
 pthread_mutex_t pids_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -37,7 +36,8 @@ void handler(int sig) {
 	}
 }
 
-void watek() {
+void *watek(void *arg) {
+	//auto args = static_cast<ThreadArgs *>(arg);
 	int status;
 	while (true) {
 		pid_t zakonczony = waitpid(-1, &status, 0);
@@ -51,6 +51,7 @@ void watek() {
 				}
 			}
 			pthread_mutex_unlock(&pids_mutex);
+			sem_op(semid, 1, 1);
 			continue;
 		}
 
@@ -61,6 +62,7 @@ void watek() {
 			break;
 		}
 	}
+	return nullptr;
 }
 
 int main() {
@@ -69,14 +71,15 @@ int main() {
 	sigemptyset(&sa.sa_mask);
 	sa.sa_flags = 0;
 
-	struct sigaction sa_child{};
-	sa_child.sa_handler = sigchld_handler;
-	sigemptyset(&sa_child.sa_mask);
-	sa_child.sa_flags = 0;
+	// struct sigaction sa_child{};
+	// sa_child.sa_handler = sigchld_handler;
+	// sigemptyset(&sa_child.sa_mask);
+	// sa_child.sa_flags = 0;
 
 	sigaction(SIGINT, &sa, nullptr);
 	sigaction(SIGRTMIN, &sa, nullptr);
-	sigaction(SIGCHLD, &sa_child, nullptr);
+	// sigaction(SIGCHLD, &sa_child, nullptr);
+	signal(SIGCHLD, SIG_IGN);
 
 
 	int shmid = shm_create(ftok(".", 'S'), sizeof(SharedMem), 0666);
@@ -91,12 +94,10 @@ int main() {
 	msgid_logger = msg_create(ftok(".", 'L'), 0666);
 
 	pid_t pid;
-	std::thread tid;
-	try {
-		tid = std::thread(watek);
-	}
-	catch (...) {
-		ipc_die("std::thread");
+	pthread_t tid;
+	ThreadArgs thread_args{shared_mem_flags};
+	if (pthread_create(&tid, nullptr, watek, &thread_args) != 0) {
+		ipc_die("pthread_create");
 	}
 
 	while (!shared_mem_flags->end_program && fire_sig_flag == 0) {
@@ -137,8 +138,7 @@ int main() {
 		}
 		pthread_mutex_unlock(&pids_mutex);
 	}
-	if (tid.joinable())
-		tid.join();
+	pthread_join(tid, nullptr);
 	sem_op(semid, 2, 2);
 	shared_mem_flags->all_customers_out = true;
 	wyslij_log(msgid_logger, "Klienci opuscili lokal, generator klientow konczy dzialanie", 4);

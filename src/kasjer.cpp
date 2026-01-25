@@ -36,7 +36,7 @@ bool sprawdz_stolik(int &index, Table *table_array, ZlozenieZamowienia const &za
         else {
             index = X1 + X2 + X3;
         }
-        for (; index < table_count; index++) {
+        for (; index < table_count - (zam.liczba_osob == 2 && mem_flags->new_tables == true ? X3 : 0); index++) {
             if (sem_op(semid_prac, 1, -1, &exception_flag) == -1) {
                 return false;
             }
@@ -63,7 +63,7 @@ bool sprawdz_stolik(int &index, Table *table_array, ZlozenieZamowienia const &za
             return false;
         }
 
-        bool ok = !table_array[index].zarezerwowany && sem_getval(table_sem_id, index) >= zam.liczba_osob;
+        bool ok = !table_array[index].zarezerwowany && table_array[index].rozmiar_grupy == 0;
 
         sem_op(semid_prac, 1, 1);
 
@@ -75,6 +75,8 @@ bool sprawdz_stolik(int &index, Table *table_array, ZlozenieZamowienia const &za
             continue;
         }
 
+        table_array[index].rozmiar_grupy = zam.liczba_osob;
+
         wyslij_log(msgid_logger, "Kasjer znalazl stolik nr: " + std::to_string(index) + " dla grupy. Stolik " + std::to_string(table_array[index].max_osob) + " osobowy", 1);
 
         return true;
@@ -84,6 +86,7 @@ bool sprawdz_stolik(int &index, Table *table_array, ZlozenieZamowienia const &za
 }
 
 void zamowienie(Table *table_array, std::vector<ZlozenieZamowienia> *kolejka, SharedMem *mem_flags, bool const nowa_wiadomosc = true) {
+    std::cerr << "kasjer zaczyna zam" << std::endl;
     msg_zamowienie msg{};
     ZlozenieZamowienia wybrane;
     bool ma_wybrane = false;
@@ -95,6 +98,7 @@ void zamowienie(Table *table_array, std::vector<ZlozenieZamowienia> *kolejka, Sh
         wybrane = msg.zam;
         ma_wybrane = true;
     }
+    std::cerr << "kasjer po rcv zam" << std::endl;
 
     wyslij_log(msgid_logger, "Kasjer rozpoczyna obsluge klienta", 1);
 
@@ -166,6 +170,7 @@ int main() {
     auto last_handle = clock::now();
 
     while (!shared_mem_flags->end_program && exception_flag == 0 && !shared_mem_flags->all_customers_out) {
+        std::cerr << "kasjer przed zamówieniem, rozmiar kolejka: " << kolejka.size() << std::endl;
         if (!kolejka.empty() && sem_getval(semid, 1) == 0) {
             if (clock::now() - last_handle >= std::chrono::seconds(1)) {
                 if (exception_flag == 1) {
@@ -178,12 +183,15 @@ int main() {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
             continue;
         }
-
+        std::cerr << "kasjer po 1 if w petli, rozmiar kolejka: " << kolejka.size() << std::endl;
         if (sem_op(semid, 1, -1, &exception_flag) == -1) {
             break;
         }
+        std::cerr << "kasjer po semop, rozmiar kolejka: " << kolejka.size() << std::endl;
         zamowienie(table_array, &kolejka, shared_mem_flags);
+        std::cerr << "kasjer po zam, rozmiar kolejka: " << kolejka.size() << std::endl;
         last_handle = clock::now();
+        std::cerr << "kasjer po zam clock update, rozmiar kolejka: " << kolejka.size() << std::endl;
     }
 
     if (exception_flag == 1) {

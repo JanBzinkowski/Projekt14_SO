@@ -71,12 +71,12 @@ void rezerwacje(KierownikRezerwacja &rezerwacja, Table *table, SharedMem *mem_fl
 
 
 void extra(Table * &table) {
-	for (int i = table_count; i < table_count + (X3 == 0 ? 1 : X3); i++) {
+	table_count += (X3 == 0 ? 1 : X3);
+	for (int i = table_count; i < table_count; i++) {
 		table[i].max_osob = 3;
 		table[i].zarezerwowany = false;
 		table[i].rozmiar_grupy = 0;
 	}
-	table_count += (X3 == 0 ? 1 : X3);
 }
 
 void zamowienie() {
