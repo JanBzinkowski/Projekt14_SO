@@ -26,15 +26,13 @@ struct ThreadArgs {
 void sigchld_handler(int) {}
 
 void handler(int sig) {
-	if (sig == SIGRTMIN) {
-		fire_sig_flag = 1;
-	}
-	if (sig == SIGINT) {
+	if (sig == SIGINT || SIGRTMIN == sig) {
 		pthread_mutex_lock(&pids_mutex);
-		for (auto pid: pids) {
+		std::vector<pid_t> copy(pids);
+		pthread_mutex_unlock(&pids_mutex);
+		for (auto pid: copy) {
 			kill(pid, SIGINT);
 		}
-		pthread_mutex_unlock(&pids_mutex);
 		fire_sig_flag = 1;
 	}
 }
@@ -78,13 +76,14 @@ int main() {
 	sa.sa_handler = handler;
 	sigemptyset(&sa.sa_mask);
 	sa.sa_flags = 0;
-	struct sigaction sa_child{};
-	sa_child.sa_handler = sigchld_handler;
-	sigemptyset(&sa_child.sa_mask);
-	sa_child.sa_flags = SA_RESTART;
+	// struct sigaction sa_child{};
+	// sa_child.sa_handler = sigchld_handler;
+	// sigemptyset(&sa_child.sa_mask);
+	// sa_child.sa_flags = SA_RESTART;
 
 	sigaction(SIGINT, &sa, nullptr);
-	sigaction(SIGCHLD, &sa_child, nullptr);
+	sigaction(SIGRTMIN, &sa, nullptr);
+	//sigaction(SIGCHLD, &sa_child, nullptr);
 
 	int shmid = shm_create(ftok(".", 'S'), sizeof(SharedMem), 0666);
 	auto *shared_mem_flags = static_cast<SharedMem *>(shm_attach(shmid, 0));
@@ -105,6 +104,7 @@ int main() {
 	if (pthread_create(&tid, nullptr, watek, &thread_args) != 0) {
 		ipc_die("pthread_create");
 	}
+	pthread_detach(tid);
 
 	while (!shared_mem_flags->end_program && fire_sig_flag == 0) {
 		if (sem_op(semid, 0, -1, &fire_sig_flag) == -1) {
@@ -133,8 +133,6 @@ int main() {
 		}
 	}
 	std::cerr << "1x" << std::endl;
-	pthread_join(tid, nullptr);
-	std::cerr << "2x" << std::endl;
 	sem_op(semid, 2, 2);
 	shared_mem_flags->all_customers_out = true;
 	wyslij_log(msgid_logger, "Klienci opuscili lokal, generator klientow konczy dzialanie", 4);
