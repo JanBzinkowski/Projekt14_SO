@@ -111,6 +111,7 @@ int main() {
     sigaction(SIGINT, &sa, nullptr);
     sigaction(SIGRTMIN, &sa, nullptr);
 
+
     srand(time(nullptr));
     msgid_logger = msg_create(ftok(".", 'L'), 0666);
     msgid_zam = msg_create(ftok(".", 'Z'), 0666);

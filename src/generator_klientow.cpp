@@ -35,6 +35,7 @@ void handler(int sig) {
 			kill(pid, SIGINT);
 		}
 		pthread_mutex_unlock(&pids_mutex);
+		fire_sig_flag = 1;
 	}
 }
 
@@ -80,7 +81,7 @@ int main() {
 	struct sigaction sa_child{};
 	sa_child.sa_handler = sigchld_handler;
 	sigemptyset(&sa_child.sa_mask);
-	sa_child.sa_flags = 0;
+	sa_child.sa_flags = SA_RESTART;
 
 	sigaction(SIGINT, &sa, nullptr);
 	sigaction(SIGCHLD, &sa_child, nullptr);
