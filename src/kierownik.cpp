@@ -186,8 +186,8 @@ int main(int argc, char *argv[]) {
 				sem_op(gen_semid, 0, 1);
 				break;
 			case 3:
-				shared_mem_flags->new_customers = false;
 				shared_mem_flags->end_program = true;
+				shared_mem_flags->new_customers = false;
 				kill(mainprog_pid, SIGINT);
 				break;
 			default:

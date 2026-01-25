@@ -40,17 +40,21 @@ void handler(int sig) {
 
 void *watek(void *arg) {
 	auto *args = static_cast<ThreadArgs *>(arg);
+	int x;
 
 	while (true) {
 		pid_t pid;
 
 		do {
-			pid = waitpid(-1, nullptr, 0);
-		} while (pid == -1 && errno == EINTR && fire_sig_flag == 0 && !args->flags->end_program);
+			pid = waitpid(-1, &x, 0);
+		} while (pid == -1 && errno == EINTR);
 
 		if (pid > 0) {
 			pthread_mutex_lock(&pids_mutex);
-			pids.erase(std::remove(pids.begin(), pids.end(), pid), pids.end());
+			auto it = std::find(pids.begin(), pids.end(), pid);
+			if (it != pids.end()) {
+				pids.erase(it);
+			}
 			pthread_mutex_unlock(&pids_mutex);
 
 			sem_op(semid, 1, 1);
@@ -61,7 +65,7 @@ void *watek(void *arg) {
 				break;
 			}
 		}
-		else if (pid == -1 && errno != ECHILD) {
+		else {
 			break;
 		}
 	}
@@ -130,12 +134,6 @@ int main() {
 	std::cerr << "1x" << std::endl;
 	pthread_join(tid, nullptr);
 	std::cerr << "2x" << std::endl;
-	// if (!pids.empty()) {
-	// 	for (auto pid: pids) {
-	// 		kill(pid, SIGINT);
-	// 		waitpid(pid, nullptr, 0);
-	// 	}
-	// }
 	sem_op(semid, 2, 2);
 	shared_mem_flags->all_customers_out = true;
 	wyslij_log(msgid_logger, "Klienci opuscili lokal, generator klientow konczy dzialanie", 4);
