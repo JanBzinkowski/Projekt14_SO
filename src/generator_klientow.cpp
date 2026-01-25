@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <fcntl.h>
 
+#include "../../../../../usr/include/c++/11/filesystem"
 #include "../include/wrappers.h"
 #include "../include/Shared_memory.h"
 #include "../include/zamowienie.h"
@@ -26,45 +27,38 @@ struct ThreadArgs {
 void sigchld_handler(int) {}
 
 void handler(int sig) {
-	if (sig == SIGINT || SIGRTMIN == sig) {
+	if (sig == SIGINT || sig == SIGRTMIN) {
+		fire_sig_flag = 1;
 		pthread_mutex_lock(&pids_mutex);
-		std::vector<pid_t> copy(pids);
-		pthread_mutex_unlock(&pids_mutex);
-		for (auto pid: copy) {
+		for (auto pid: pids) {
 			kill(pid, SIGINT);
 		}
-		fire_sig_flag = 1;
+		pthread_mutex_unlock(&pids_mutex);
 	}
 }
 
 void *watek(void *arg) {
-	auto *args = static_cast<ThreadArgs *>(arg);
-	int x;
-
+	//auto args = static_cast<ThreadArgs *>(arg);
+	int status;
 	while (true) {
-		pid_t pid;
-
-		do {
-			pid = waitpid(-1, &x, 0);
-		} while (pid == -1 && errno == EINTR);
-
-		if (pid > 0) {
+		pid_t zakonczony = waitpid(-1, &status, 0);
+		if (zakonczony > 0) {
 			pthread_mutex_lock(&pids_mutex);
-			auto it = std::find(pids.begin(), pids.end(), pid);
-			if (it != pids.end()) {
-				pids.erase(it);
+			for (size_t i = 0; i < pids.size(); ++i) {
+				if (pids[i] == zakonczony) {
+					pids[i] = pids.back();
+					pids.pop_back();
+					break;
+				}
 			}
 			pthread_mutex_unlock(&pids_mutex);
+			continue;
+		}
 
-			sem_op(semid, 1, 1);
-			wyslij_log(msgid_logger, "Usunięto klienta: [" + std::to_string(pid) + "]", 4);
-		}
-		else if (pid == -1 && errno == ECHILD) {
-			if (args->flags->end_program || fire_sig_flag == 1) {
-				break;
+		if (zakonczony == -1) {
+			if (errno == EINTR) {
+				continue;
 			}
-		}
-		else {
 			break;
 		}
 	}
@@ -76,14 +70,16 @@ int main() {
 	sa.sa_handler = handler;
 	sigemptyset(&sa.sa_mask);
 	sa.sa_flags = 0;
-	// struct sigaction sa_child{};
-	// sa_child.sa_handler = sigchld_handler;
-	// sigemptyset(&sa_child.sa_mask);
-	// sa_child.sa_flags = SA_RESTART;
+
+	struct sigaction sa_child{};
+	sa_child.sa_handler = sigchld_handler;
+	sigemptyset(&sa_child.sa_mask);
+	sa_child.sa_flags = 0;
 
 	sigaction(SIGINT, &sa, nullptr);
 	sigaction(SIGRTMIN, &sa, nullptr);
-	//sigaction(SIGCHLD, &sa_child, nullptr);
+	sigaction(SIGCHLD, &sa_child, nullptr);
+
 
 	int shmid = shm_create(ftok(".", 'S'), sizeof(SharedMem), 0666);
 	auto *shared_mem_flags = static_cast<SharedMem *>(shm_attach(shmid, 0));
@@ -97,14 +93,11 @@ int main() {
 	msgid_logger = msg_create(ftok(".", 'L'), 0666);
 
 	pid_t pid;
-
-	ThreadArgs thread_args{shared_mem_flags};
-
 	pthread_t tid;
+	ThreadArgs thread_args{shared_mem_flags};
 	if (pthread_create(&tid, nullptr, watek, &thread_args) != 0) {
 		ipc_die("pthread_create");
 	}
-	pthread_detach(tid);
 
 	while (!shared_mem_flags->end_program && fire_sig_flag == 0) {
 		if (sem_op(semid, 0, -1, &fire_sig_flag) == -1) {
@@ -132,7 +125,19 @@ int main() {
 			}
 		}
 	}
-	std::cerr << "1x" << std::endl;
+	for (int i = 0; i < pids.size(); ++i) {
+		pid_t zakonczony;
+		pthread_mutex_lock(&pids_mutex);
+		do {
+			zakonczony = waitpid(-1, nullptr, 0);
+		} while (errno == EINTR);
+		auto it = std::find(pids.begin(), pids.end(), zakonczony);
+		if (it != pids.end()) {
+			pids.erase(it);
+		}
+		pthread_mutex_unlock(&pids_mutex);
+	}
+	pthread_join(tid, nullptr);
 	sem_op(semid, 2, 2);
 	shared_mem_flags->all_customers_out = true;
 	wyslij_log(msgid_logger, "Klienci opuscili lokal, generator klientow konczy dzialanie", 4);
