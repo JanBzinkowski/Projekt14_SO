@@ -23,6 +23,11 @@ void handler(int const sig) {
     }
 }
 
+void zamkniecie_kasy(SharedMem *mem_flags) {
+    wyslij_log(msgid_logger, "Kasjer zamyka kase", 5);
+    wyslij_log(msgid_logger, "Dzisiejszy utarg to: " + std::to_string(mem_flags->utarg) + " zl", 5);
+}
+
 bool sprawdz_stolik(int &index, Table *table_array, ZlozenieZamowienia const &zam, SharedMem *mem_flags) {
     if (zam.liczba_osob <= 2) {
         if (zam.liczba_osob == 1) {
@@ -115,6 +120,10 @@ void zamowienie(Table *table_array, std::vector<ZlozenieZamowienia> *kolejka, Sh
         return;
     }
 
+    mem_flags->utarg += wybrane.zamowienie1.nr_pozycji_menu + wybrane.zamowienie2.nr_pozycji_menu + wybrane.zamowienie3.nr_pozycji_menu + wybrane.zamowienie4.nr_pozycji_menu
+            + wybrane.zamowienie1.nr_napoju + wybrane.zamowienie2.nr_napoju + wybrane.zamowienie3.nr_napoju + wybrane.zamowienie4.nr_napoju;
+
+
     msg_pracownik pracownik{ZAMOWIENIE_PRACOWNIK, {index, wybrane.pid, wybrane.zamowienie1, wybrane.zamowienie2, wybrane.zamowienie3, wybrane.zamowienie4}};
 
     msg_send(msgid_zam, &pracownik, sizeof(pracownik.zwrot), 0);
@@ -186,7 +195,7 @@ int main() {
 
     sem_op(semid_gk, 2, -1);
 
-    wyslij_log(msgid_logger, "Kasjer zamyka kase", 4);
+    zamkniecie_kasy(shared_mem_flags);
 
     wyslij_log(msgid_logger, "Kasjer konczy prace", 4);
 

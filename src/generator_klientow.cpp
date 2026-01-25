@@ -19,24 +19,15 @@ int semid, msgid_logger;
 
 std::vector<pid_t> pids;
 
-int sig_pipe[2];
-
 struct ThreadArgs {
 	SharedMem *flags;
 };
 
-void sigchld_handler(int) {
-	uint8_t b = 1;
-	ssize_t r = write(sig_pipe[1], &b, 1);
-	(void) r;
-}
+void sigchld_handler(int) {}
 
 void handler(int sig) {
 	if (sig == SIGRTMIN) {
 		fire_sig_flag = 1;
-		uint8_t b = 2;
-		ssize_t r = write(sig_pipe[1], &b, 1);
-		(void) r;
 	}
 	if (sig == SIGINT) {
 		pthread_mutex_lock(&pids_mutex);
@@ -47,46 +38,33 @@ void handler(int sig) {
 	}
 }
 
-void child_remove() {
-	while (true) {
-		pid_t pid = waitpid(-1, nullptr, WNOHANG);
-		if (pid <= 0) {
-			break;
-		}
-		pids.erase(std::remove(pids.begin(), pids.end(), pid), pids.end());
-		sem_op(semid, 1, 1);
-		wyslij_log(msgid_logger, "Usunięto klienta: [" + std::to_string(pid) + "]", 4);
-	}
-}
-
 void *watek(void *arg) {
-	auto args = (ThreadArgs *) arg;
-	uint8_t b;
+	auto *args = static_cast<ThreadArgs *>(arg);
 
 	while (true) {
-		ssize_t r = pipe_recv(sig_pipe[0], &b, 1, &fire_sig_flag);
+		pid_t pid;
 
-		if (r <= 0) {
-			break;
+		do {
+			pid = waitpid(-1, nullptr, 0);
+		} while (pid == -1 && errno == EINTR && fire_sig_flag == 0 && !args->flags->end_program);
+
+		if (pid > 0) {
+			pthread_mutex_lock(&pids_mutex);
+			pids.erase(std::remove(pids.begin(), pids.end(), pid), pids.end());
+			pthread_mutex_unlock(&pids_mutex);
+
+			sem_op(semid, 1, 1);
+			wyslij_log(msgid_logger, "Usunięto klienta: [" + std::to_string(pid) + "]", 4);
 		}
-
-		if (b == 2) {
-			break;
+		else if (pid == -1 && errno == ECHILD) {
+			if (args->flags->end_program || fire_sig_flag == 1) {
+				break;
+			}
 		}
-
-		pthread_mutex_lock(&pids_mutex);
-		child_remove();
-		pthread_mutex_unlock(&pids_mutex);
-
-		pthread_mutex_lock(&pids_mutex);
-		bool stop = args->flags->end_program && pids.empty();
-		pthread_mutex_unlock(&pids_mutex);
-
-		if (stop) {
+		else if (pid == -1 && errno != ECHILD) {
 			break;
 		}
 	}
-
 	return nullptr;
 }
 
@@ -99,10 +77,6 @@ int main() {
 	sa_child.sa_handler = sigchld_handler;
 	sigemptyset(&sa_child.sa_mask);
 	sa_child.sa_flags = 0;
-
-	if (pipe(sig_pipe) == -1) {
-		ipc_die("pipe");
-	}
 
 	sigaction(SIGINT, &sa, nullptr);
 	sigaction(SIGCHLD, &sa_child, nullptr);
@@ -153,21 +127,18 @@ int main() {
 			}
 		}
 	}
-	uint8_t b = 2;
-	write(sig_pipe[1], &b, 1);
+	std::cerr << "1x" << std::endl;
 	pthread_join(tid, nullptr);
-	if (!pids.empty()) {
-		for (auto pid: pids) {
-			kill(pid, SIGINT);
-			waitpid(pid, nullptr, 0);
-		}
-	}
+	std::cerr << "2x" << std::endl;
+	// if (!pids.empty()) {
+	// 	for (auto pid: pids) {
+	// 		kill(pid, SIGINT);
+	// 		waitpid(pid, nullptr, 0);
+	// 	}
+	// }
 	sem_op(semid, 2, 2);
 	shared_mem_flags->all_customers_out = true;
 	wyslij_log(msgid_logger, "Klienci opuscili lokal, generator klientow konczy dzialanie", 4);
-
-	close(sig_pipe[0]);
-	close(sig_pipe[1]);
 
 	shm_detach(shared_mem_flags);
 	return 0;

@@ -12,6 +12,7 @@ struct SharedMem {
 	int8_t new_tables = false;
 	int8_t all_customers_out = false;
 	size_t tables_array_size = 0;
+	unsigned long long int utarg = 0;
 };
 
 #endif //SO_SHARED_MEMORY_H
