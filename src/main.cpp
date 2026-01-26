@@ -134,6 +134,7 @@ int main() {
         execl("./logger", "logger", NULL);
         ipc_die("exec logger");
     }
+    pid_t logger_pid = pid;
     pids.push_back(pid);
     std::cerr << "Uruchomiono logger: [" + std::to_string(pid) + "]" << std::endl;
 
@@ -142,9 +143,11 @@ int main() {
         do {
             ret = waitpid(chpid, nullptr, 0);
         } while (ret == -1 && errno == EINTR);
-
-        if (chpid != pids[3]) {
+        if (chpid != logger_pid) {
             sem_op(logger_semid, 0, -1);
+        }
+        if (sem_getval(logger_semid, 0) == 0) {
+            wyslij_log(msgid_logger, "", 999);
         }
         std::cerr << "zakonczono: [" + std::to_string(chpid) + "]" << std::endl;
     }

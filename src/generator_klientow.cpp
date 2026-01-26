@@ -15,8 +15,6 @@
 #include "../include/Shared_memory.h"
 #include "../include/Tables.h"
 
-Table *table_array;
-
 volatile sig_atomic_t fire_sig_flag = 0;
 std::mutex pids_mutex;
 std::atomic<bool> stop_thread{false};
@@ -133,8 +131,9 @@ int main() {
 			} while (zakonczony == -1 && errno == EINTR);
 		}
 	}
-	if (tid.joinable())
+	if (tid.joinable()) {
 		tid.join();
+	}
 
 	sem_op(semid, 2, 2);
 	shared_mem_flags->all_customers_out = true;

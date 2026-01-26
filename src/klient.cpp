@@ -61,11 +61,11 @@ void *decyzja_menu(void *args) {
 
 void *jedzenie(void *args) {
     auto zamowienie = (ThreadArgs *) args;
-    sleep(zamowienie->zamowienie->nr_pozycji_menu);
-    wyslij_log(msgid_logger, "Klient skonczyl jesc danie.", 2);
+    sleep(zamowienie->zamowienie->nr_pozycji_menu + zamowienie->zamowienie->nr_napoju);
 
-    sleep(zamowienie->zamowienie->nr_napoju);
-    wyslij_log(msgid_logger, "Klient skonczyl pic napoj.", 2);
+    if (sig_flag == 0) {
+        wyslij_log(msgid_logger, "Klient skonczyl swoj posilek", 2);
+    }
     return nullptr;
 }
 
@@ -192,7 +192,9 @@ int main() {
         return 0;
     }
     if (zwrot.nr_stolika < 0) {
-        wyslij_log(msgid_logger, "Klient nie znalazl stolika i wyszedl. [" + std::to_string(getpid()) + "]", 2);
+        if (sig_flag == 0) {
+            wyslij_log(msgid_logger, "Klient nie znalazl stolika i wyszedl. [" + std::to_string(getpid()) + "]", 2);
+        }
         shm_detach(base);
         return 0;
     }
@@ -211,7 +213,9 @@ int main() {
         pthread_join(tid, nullptr);
     }
 
-    zwrot_naczyn(&zwrot);
+    if (sig_flag == 0) {
+        zwrot_naczyn(&zwrot);
+    }
 
     opuszczenie_lokalu(&zwrot, &zam, table_array);
 

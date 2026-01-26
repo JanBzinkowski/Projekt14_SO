@@ -153,7 +153,7 @@ int main() {
     auto *table_array = reinterpret_cast<Table *>(base + sizeof(SharedMem));
 
     semid = sem_create(ftok(".", 'K'), 2, 0666);
-    sem_set(semid, 0, MAX_KLIENTOW_W_RRESTAURACJI - 3);
+    sem_set(semid, 0, 512);
     sem_set(semid, 1, 0);
 
     msgid_zam = msg_create(ftok(".", 'Z'), 0666);

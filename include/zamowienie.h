@@ -33,7 +33,7 @@ struct ZamowieniePracownik {
 };
 
 struct ZamowienieZwrot {
-	int16_t nr_stolika = -1;
+	int32_t nr_stolika = -1;
 };
 
 struct msg_zamowienie {

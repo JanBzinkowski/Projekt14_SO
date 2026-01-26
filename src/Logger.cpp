@@ -9,9 +9,7 @@ volatile sig_atomic_t fire_flag = 0;
 int msgid;
 
 void handler(int sig) {
-	if (sig == SIGRTMIN || sig == SIGINT) {
-		fire_flag = 1;
-	}
+	fire_flag = 1;
 }
 
 int main() {
@@ -19,6 +17,9 @@ int main() {
 	sa.sa_handler = handler;
 	sigemptyset(&sa.sa_mask);
 	sa.sa_flags = 0;
+
+	sigaction(SIGINT, &sa, nullptr);
+	sigaction(SIGRTMIN, &sa, nullptr);
 
 	int shmid = shm_create(ftok(".", 'S'), sizeof(SharedMem), 0666);
 	auto *shared_mem_flags = static_cast<SharedMem *>(shm_attach(shmid, 0));
@@ -36,9 +37,10 @@ int main() {
 	std::cout << "Logger uruchomiony. Odbieranie wiadomości..." << std::endl;
 	log_file << "Logger uruchomiony. Odbieranie wiadomości..." << std::endl;
 
-	while ((!shared_mem_flags->end_program || sem_getval(logger_semid, 0) > 0) && fire_flag == 0) {
+	while (sem_getval(logger_semid, 0) > 0) {
 		MsgText msg{};
-		if (msg_recv(msgid, &msg, sizeof(msg.text), -999, 0, &fire_flag) > 0) {
+
+		if (msg_recv(msgid, &msg, sizeof(msg.text), -1000, 0) > 0) {
 			if (msg.mtype == 999) {
 				break;
 			}
