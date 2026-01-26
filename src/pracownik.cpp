@@ -36,35 +36,35 @@ void rezerwacje(KierownikRezerwacja &rezerwacja, Table *table, SharedMem *mem_fl
 	}
 
 	for (int i = 0; i < rezerwacja.reserved.x1 && i < X1; i++)
-		table[i].zarezerwowany = true;
+		table[i].zarezerwowany_pzez_kierownika = true;
 
 	for (int i = X1; i < X1 + rezerwacja.reserved.x2 && i < X1 + X2; i++)
-		table[i].zarezerwowany = true;
+		table[i].zarezerwowany_pzez_kierownika = true;
 
 	int start3 = X1 + X2;
 
 	if (!mem_flags->new_tables) {
 		for (int i = start3; i < start3 + rezerwacja.reserved.x3 && i < start3 + X3; i++)
-			table[i].zarezerwowany = true;
+			table[i].zarezerwowany_pzez_kierownika = true;
 	}
 	else {
 		int added3 = (X3 == 0 ? 1 : X3);
 
 		int reserved_base3 = std::min(rezerwacja.reserved.x3, X3);
 		for (int i = start3; i < start3 + reserved_base3; i++)
-			table[i].zarezerwowany = true;
+			table[i].zarezerwowany_pzez_kierownika = true;
 
 		int reserved_extra3 = rezerwacja.reserved.x3 - reserved_base3;
 		if (reserved_extra3 > 0) {
 			int start3_extra = table_count - added3;
 			for (int i = start3_extra; i < start3_extra + std::min(reserved_extra3, added3); i++)
-				table[i].zarezerwowany = true;
+				table[i].zarezerwowany_pzez_kierownika = true;
 		}
 	}
 
 	int start4 = X1 + X2 + X3;
 	for (int i = start4; i < start4 + rezerwacja.reserved.x4 && i < start4 + X4; i++)
-		table[i].zarezerwowany = true;
+		table[i].zarezerwowany_pzez_kierownika = true;
 
 	sem_op(semid, 1, 1);
 }
@@ -74,8 +74,8 @@ void extra(Table * &table) {
 	table_count += (X3 == 0 ? 1 : X3);
 	for (int i = table_count; i < table_count; i++) {
 		table[i].max_osob = 3;
-		table[i].zarezerwowany = false;
-		table[i].rozmiar_grupy = 0;
+		table[i].zarezerwowany_pzez_kierownika = false;
+		table[i].typ_gruoy = 0;
 	}
 }
 

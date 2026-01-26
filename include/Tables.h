@@ -16,8 +16,8 @@ extern int x1, x2, x3, x4;
 
 struct Table {
 	int8_t max_osob = 0;
-	int8_t rozmiar_grupy = 0;
-	bool zarezerwowany = false;
+	int8_t typ_gruoy = 0;
+	bool zarezerwowany_pzez_kierownika = false;
 };
 
 #endif //SO_TABLES_H

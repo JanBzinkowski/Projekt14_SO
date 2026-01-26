@@ -41,7 +41,7 @@ bool sprawdz_stolik(int &index, Table *table_array, ZlozenieZamowienia const &za
                 return false;
             }
 
-            bool ok = !table_array[index].zarezerwowany && table_array[index].rozmiar_grupy == zam.liczba_osob;
+            bool ok = !table_array[index].zarezerwowany_pzez_kierownika && table_array[index].typ_gruoy == zam.liczba_osob;
 
             sem_op(semid_prac, 1, 1);
 
@@ -63,7 +63,7 @@ bool sprawdz_stolik(int &index, Table *table_array, ZlozenieZamowienia const &za
             return false;
         }
 
-        bool ok = !table_array[index].zarezerwowany && table_array[index].rozmiar_grupy == 0;
+        bool ok = !table_array[index].zarezerwowany_pzez_kierownika && table_array[index].max_osob == sem_getval(table_sem_id, index);
 
         sem_op(semid_prac, 1, 1);
 
@@ -75,7 +75,7 @@ bool sprawdz_stolik(int &index, Table *table_array, ZlozenieZamowienia const &za
             continue;
         }
 
-        table_array[index].rozmiar_grupy = zam.liczba_osob;
+        table_array[index].typ_gruoy = zam.liczba_osob;
 
         wyslij_log(msgid_logger, "Kasjer znalazl stolik nr: " + std::to_string(index) + " dla grupy. Stolik " + std::to_string(table_array[index].max_osob) + " osobowy", 1);
 
@@ -84,6 +84,7 @@ bool sprawdz_stolik(int &index, Table *table_array, ZlozenieZamowienia const &za
     index = -1;
     return false;
 }
+
 
 void zamowienie(Table *table_array, std::vector<ZlozenieZamowienia> *kolejka, SharedMem *mem_flags, bool const nowa_wiadomosc = true) {
     std::cerr << "kasjer zaczyna zam" << std::endl;

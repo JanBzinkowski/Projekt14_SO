@@ -78,7 +78,7 @@ void opuszczenie_lokalu(ZamowienieZwrot *zwrot, ZlozenieZamowienia *zam, Table *
             return;
         }
         if (sem_getval(table_sem_id, zwrot->nr_stolika) == table[zwrot->nr_stolika].max_osob) {
-            table[zwrot->nr_stolika].rozmiar_grupy = 0;
+            table[zwrot->nr_stolika].typ_gruoy = 0;
         }
         sem_op(semid_prac, 1, 1);
     }
