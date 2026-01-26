@@ -3,6 +3,8 @@
 
 #include <cctype>
 
+#include "Tables.h"
+
 #define MAX_KLIENTOW 10000
 #define MAX_KLIENTOW_W_RRESTAURACJI 120
 
@@ -13,6 +15,8 @@ struct SharedMem {
 	int8_t all_customers_out = false;
 	size_t tables_array_size = 0;
 	unsigned long long int utarg = 0;
+	int table_count = ::table_count;
+	int max_table_count = ::table_count_max;
 };
 
 #endif //SO_SHARED_MEMORY_H

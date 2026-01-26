@@ -69,9 +69,9 @@ void *jedzenie(void *args) {
     return nullptr;
 }
 
-void opuszczenie_lokalu(ZamowienieZwrot *zwrot, ZlozenieZamowienia *zam, Table *table) {
+void opuszczenie_lokalu(ZamowienieZwrot *zwrot, ZlozenieZamowienia *zam, Table *table, SharedMem *mem_flags) {
     if (zwrot && zwrot->nr_stolika >= 0) {
-        int table_sem_id = sem_create(ftok(".", 'M'), table_count, 0666);
+        int table_sem_id = sem_create(ftok(".", 'M'), mem_flags->max_table_count, 0666);
         sem_op(table_sem_id, zwrot->nr_stolika, zam->liczba_osob);
         int semid_prac = sem_create(ftok(".", 'W'), 2, 0666);
         if (sem_op(semid_prac, 1, -1, &sig_flag) == -1) {
@@ -94,14 +94,8 @@ void zwrot_naczyn(ZamowienieZwrot *zwrot) {
     wyslij_log(msgid_logger, "Grupa klientow oddala naczynia, stolik nr: " + std::to_string(zwrot->nr_stolika), 2);
 }
 
-void zamowienie(ZlozenieZamowienia *zam, ZamowienieZwrot *zwrot, Table *table) {
+void zamowienie(ZlozenieZamowienia *zam, ZamowienieZwrot *zwrot) {
     sem_op(semid, 1, 1);
-
-    if (!zwrot) {
-        wyslij_log(msgid_logger, "Klient nic nie zamawia");
-        opuszczenie_lokalu(zwrot, zam, table);
-        return;
-    }
 
     msg_zamowienie msg{};
     msg.mtype = ZAMOWIENIE;
@@ -162,8 +156,8 @@ int main() {
     zam.pid = getpid();
     zam.liczba_osob = static_cast<int8_t>(rand_range(1, 4));
 
-    if (0.05 < rand_double()) {
-        zamowienie(&zam, nullptr, table_array);
+    if (0.05 > rand_double()) {
+        opuszczenie_lokalu(nullptr, &zam, table_array, shared_mem_flags);
         shm_detach(base);
         return 0;
     }
@@ -185,9 +179,9 @@ int main() {
 
     ZamowienieZwrot zwrot;
     zwrot.nr_stolika = -1;
-    zamowienie(&zam, &zwrot, table_array);
+    zamowienie(&zam, &zwrot);
     if (sig_flag) {
-        opuszczenie_lokalu(nullptr, &zam, table_array);
+        opuszczenie_lokalu(nullptr, &zam, table_array, shared_mem_flags);
         shm_detach(base);
         return 0;
     }
@@ -217,7 +211,7 @@ int main() {
         zwrot_naczyn(&zwrot);
     }
 
-    opuszczenie_lokalu(&zwrot, &zam, table_array);
+    opuszczenie_lokalu(&zwrot, &zam, table_array, shared_mem_flags);
 
     shm_detach(base);
     return 0;

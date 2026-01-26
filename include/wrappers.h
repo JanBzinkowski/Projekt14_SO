@@ -4,9 +4,6 @@
 #include <cstdlib>
 #include <sys/types.h>
 #include <csignal>
-#include <sys/ipc.h>
-#include <sys/shm.h>
-#include <sys/msg.h>
 #include <sys/sem.h>
 #include <string>
 
@@ -16,7 +13,7 @@
 
 union semun {
 	int val;
-	struct semid_ds *buf;
+	semid_ds *buf;
 	unsigned short *array;
 };
 
@@ -33,13 +30,8 @@ struct Reserve {
 };
 
 struct KierownikRezerwacja {
-	long mtype;
-	Reserve reserved;
-};
-
-struct KierownikStoly {
-	long mtype;
-	bool extra = true;
+	long mtype = REZERWACJE;
+	Reserve reserved = {0, 0, 0, 0};
 };
 
 void ipc_die(const char *msg);

@@ -51,7 +51,6 @@ int main() {
     sem_op(semid_prac, 1, 1);
 
     int max_x3 = (X3 == 0) ? 1 : (X3 * 2);
-    table_count_max = X1 + X2 + max_x3 + X4;
 
     size_t table_size = sizeof(Table) * table_count_max;
     size_t total_size = sizeof(SharedMem) + table_size;
@@ -67,8 +66,10 @@ int main() {
     shared_mem_flags->end_program = false;
     shared_mem_flags->new_tables = false;
     shared_mem_flags->tables_array_size = table_size;
+    shared_mem_flags->table_count = table_count;
+    shared_mem_flags->max_table_count = table_count_max;
 
-    int semid = sem_create(ftok(".", 'M'), static_cast<int>(table_size / sizeof(Table)), IPC_CREAT | 0666);
+    int semid = sem_create(ftok(".", 'M'), table_count_max, IPC_CREAT | 0666);
 
     for (int i = 0; i < X1; i++) {
         table_array[i].max_osob = 1;

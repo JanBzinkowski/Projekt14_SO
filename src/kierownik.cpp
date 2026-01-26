@@ -110,8 +110,9 @@ int wyslij_sygnal(SharedMem *shared_mem_flags) {
 						std::cout << "Wprowadzono niepoprawny znak, sprobuj ponownie.\n";
 						continue;
 					}
-					if (r.x3 > X3) {
-						std::cout << "Max stolikow X3 to " << X3 << std::endl;
+					int max3 = X3 + (shared_mem_flags->new_tables ? (X3 == 0 ? 1 : X3) : 0);
+					if (r.x3 > max3) {
+						std::cout << "Max stolikow X3 to " << max3 << std::endl;
 					}
 					else {
 						break;

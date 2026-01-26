@@ -2,6 +2,9 @@
 #include <cstring>
 #include <iostream>
 
+#include <sys/shm.h>
+#include <sys/msg.h>
+
 void ipc_die(const char *msg) {
 	perror(msg);
 	exit(EXIT_FAILURE);

@@ -9,7 +9,7 @@
 #include "../include/Tables.h"
 #include "../include/wrappers.h"
 
-int shmid, semid, semid_gk, msgid_zam, msgid_logger, msgid_kierownik;
+int shmid, semid, semid_gk, msgid_zam, msgid_logger, msgid_kierownik, table_sem_id;
 
 volatile sig_atomic_t sig_flag = 0;
 volatile sig_atomic_t fire_sig_flag = 0;
@@ -71,11 +71,13 @@ void rezerwacje(KierownikRezerwacja &rezerwacja, Table *table, SharedMem *mem_fl
 
 
 void extra(Table * &table) {
+	int old_table_count = table_count;
 	table_count += (X3 == 0 ? 1 : X3);
-	for (int i = table_count; i < table_count; i++) {
+	for (int i = old_table_count; i < table_count; i++) {
 		table[i].max_osob = 3;
 		table[i].zarezerwowany_pzez_kierownika = false;
 		table[i].typ_grupy = 0;
+		sem_op(table_sem_id, i, 3);
 	}
 }
 
@@ -126,6 +128,7 @@ int main() {
 	semid = sem_create(ftok(".", 'W'), 2, 0666);
 	semid_gk = sem_create(ftok(".", 'G'), 4, 0666);
 	msgid_kierownik = msg_create(ftok(".", 'I'), 0666);
+	table_sem_id = sem_create(ftok(".", 'M'), table_count_max, 0666);
 
 	wyslij_log(msgid_logger, "Pracownik rozpoczyna prace", 3);
 

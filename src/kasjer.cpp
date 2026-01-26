@@ -36,7 +36,7 @@ bool sprawdz_stolik(int &index, Table *table_array, ZlozenieZamowienia const &za
         else {
             index = X1 + X2 + X3;
         }
-        for (; index < table_count - (zam.liczba_osob == 2 && mem_flags->new_tables == true ? X3 : 0); index++) {
+        for (; index < mem_flags->table_count - (zam.liczba_osob == 2 && mem_flags->new_tables == true ? X3 : 0); index++) {
             if (sem_op(semid_prac, 1, -1, &exception_flag) == -1) {
                 return false;
             }
@@ -58,7 +58,7 @@ bool sprawdz_stolik(int &index, Table *table_array, ZlozenieZamowienia const &za
             return true;
         }
     }
-    for (index = 0; index < table_count; index++) {
+    for (index = 0; index < mem_flags->table_count; index++) {
         if (sem_op(semid_prac, 1, -1, &exception_flag) == -1) {
             return false;
         }
@@ -160,7 +160,7 @@ int main() {
     msgid_logger = msg_create(ftok(".", 'L'), 0666);
     semid_prac = sem_create(ftok(".", 'W'), 2, 0666);
     semid_gk = sem_create(ftok(".", 'G'), 4, 0666);
-    table_sem_id = sem_create(ftok(".", 'M'), static_cast<int>(shared_mem_flags->tables_array_size / sizeof(Table)), 0666);
+    table_sem_id = sem_create(ftok(".", 'M'), shared_mem_flags->max_table_count, 0666);
 
     wyslij_log(msgid_logger, "Kasjer rozpoczyna prace", 1);
 
