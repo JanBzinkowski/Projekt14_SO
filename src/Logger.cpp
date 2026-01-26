@@ -1,7 +1,9 @@
 #include <iostream>
 #include <fstream>
-#include <cstdlib>
+#include <iomanip>
+#include <sstream>
 #include <unistd.h>
+#include <chrono>
 #include "../include/wrappers.h"
 #include "../include/Shared_memory.h"
 
@@ -10,6 +12,20 @@ int msgid;
 
 void handler(int sig) {
 	fire_flag = 1;
+}
+
+std::string timestamp() {
+	using namespace std::chrono;
+	const auto now = system_clock::now();
+	const auto ms = duration_cast<milliseconds>(now.time_since_epoch()) %1000;
+	std::time_t t = system_clock::to_time_t(now);
+	std::tm tm_now{};
+	localtime_r(&t, &tm_now);
+
+	std::ostringstream oss;
+	oss << std::put_time(&tm_now, "%Y-%m-%d %H:%M:%S")
+	<< '.' << std::setfill('0') << std::setw(3) << ms.count();
+	return oss.str();
 }
 
 int main() {
@@ -44,8 +60,9 @@ int main() {
 			if (msg.mtype == 999) {
 				break;
 			}
-			std::cout << "[mtype=" << msg.mtype << "] " << msg.text << std::endl;
-			log_file << "[mtype=" << msg.mtype << "] " << msg.text << std::endl;
+			const auto line = "[" + timestamp() + "][mtype=" + std::to_string(msg.mtype) + "] " + msg.text;
+			std::cout << line << std::endl;
+			log_file << line << std::endl;
 			log_file.flush();
 		}
 	}
