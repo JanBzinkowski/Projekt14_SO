@@ -6,7 +6,6 @@
 #include <vector>
 #include <chrono>
 #include <thread>
-#include <type_traits>
 
 #include "../include/zamowienie.h"
 #include "../include/Shared_memory.h"
@@ -25,8 +24,8 @@ void handler(int const sig) {
 }
 
 void zamkniecie_kasy(SharedMem *mem_flags) {
-    TRACE(wyslij_log(msgid_logger, "Kasjer zamyka kase", 5));
-    TRACE(wyslij_log(msgid_logger, "Dzisiejszy utarg to: " + std::to_string(mem_flags->utarg) + " zl", 5));
+    wyslij_log(msgid_logger, "Kasjer zamyka kase", 5);
+    wyslij_log(msgid_logger, "Dzisiejszy utarg to: " + std::to_string(mem_flags->utarg) + " zl", 5);
 }
 
 bool sprawdz_stolik(int &index, Table *table_array, ZlozenieZamowienia const &zam, SharedMem *mem_flags) {
@@ -38,47 +37,43 @@ bool sprawdz_stolik(int &index, Table *table_array, ZlozenieZamowienia const &za
             index = X1 + X2 + X3;
         }
         for (; index < table_count - (zam.liczba_osob == 2 && mem_flags->new_tables == true ? X3 : 0); index++) {
-            if (TRACE(sem_op(semid_prac, 1, -1, &exception_flag)) == -1) {
+            if (sem_op(semid_prac, 1, -1, &exception_flag) == -1) {
                 return false;
             }
 
-            bool ok = !table_array[index].zarezerwowany_pzez_kierownika && table_array[index].typ_gruoy == zam.liczba_osob;
+            bool ok = !table_array[index].zarezerwowany_pzez_kierownika && table_array[index].typ_grupy == zam.liczba_osob;
 
-            TRACE(sem_op(semid_prac, 1, 1));
+            sem_op(semid_prac, 1, 1);
 
-            if (!ok) {
+            if (sem_op(table_sem_id, index, -zam.liczba_osob, nullptr, IPC_NOWAIT) == -1) {
                 continue;
             }
 
-            if (TRACE(sem_op(table_sem_id, index, -zam.liczba_osob, nullptr, IPC_NOWAIT)) == -1) {
-                continue;
-            }
-
-            TRACE(wyslij_log(msgid_logger, "Kasjer znalazl stolik nr: " + std::to_string(index) + " dla grupy. Stolik " + std::to_string(table_array[index].max_osob) + " osobowy", 1));
+            wyslij_log(msgid_logger, "Kasjer znalazl stolik nr: " + std::to_string(index) + " dla grupy. Stolik " + std::to_string(table_array[index].max_osob) + " osobowy", 1);
 
             return true;
         }
     }
     for (index = 0; index < table_count; index++) {
-        if (TRACE(sem_op(semid_prac, 1, -1, &exception_flag)) == -1) {
+        if (sem_op(semid_prac, 1, -1, &exception_flag) == -1) {
             return false;
         }
 
-        bool ok = !table_array[index].zarezerwowany_pzez_kierownika && table_array[index].max_osob == TRACE(sem_getval(table_sem_id, index));
+        bool ok = !table_array[index].zarezerwowany_pzez_kierownika && table_array[index].max_osob == sem_getval(table_sem_id, index);
 
-        TRACE(sem_op(semid_prac, 1, 1));
+        sem_op(semid_prac, 1, 1);
 
         if (!ok) {
             continue;
         }
 
-        if (TRACE(sem_op(table_sem_id, index, -zam.liczba_osob, nullptr, IPC_NOWAIT)) == -1) {
+        if (sem_op(table_sem_id, index, -zam.liczba_osob, nullptr, IPC_NOWAIT) == -1) {
             continue;
         }
 
-        table_array[index].typ_gruoy = zam.liczba_osob;
+        table_array[index].typ_grupy = zam.liczba_osob;
 
-        TRACE(wyslij_log(msgid_logger, "Kasjer znalazl stolik nr: " + std::to_string(index) + " dla grupy. Stolik " + std::to_string(table_array[index].max_osob) + " osobowy", 1));
+        wyslij_log(msgid_logger, "Kasjer znalazl stolik nr: " + std::to_string(index) + " dla grupy. Stolik " + std::to_string(table_array[index].max_osob) + " osobowy", 1);
 
         return true;
     }
@@ -88,28 +83,26 @@ bool sprawdz_stolik(int &index, Table *table_array, ZlozenieZamowienia const &za
 
 
 void zamowienie(Table *table_array, std::vector<ZlozenieZamowienia> *kolejka, SharedMem *mem_flags, bool const nowa_wiadomosc = true) {
-    std::cerr << "kasjer zaczyna zam" << std::endl;
     msg_zamowienie msg{};
     ZlozenieZamowienia wybrane;
     bool ma_wybrane = false;
 
     if (nowa_wiadomosc) {
-        if (TRACE(msg_recv(msgid_zam, &msg, sizeof(msg.zam), ZAMOWIENIE, 0, &exception_flag)) == -1) {
+        if (msg_recv(msgid_zam, &msg, sizeof(msg.zam), ZAMOWIENIE, 0, &exception_flag) == -1) {
             return;
         }
+        sem_op(semid, 0, 1);
         wybrane = msg.zam;
         ma_wybrane = true;
     }
-    std::cerr << "kasjer po rcv zam" << std::endl;
 
-    TRACE(wyslij_log(msgid_logger, "Kasjer rozpoczyna obsluge klienta", 1));
+    wyslij_log(msgid_logger, "Kasjer rozpoczyna obsluge klienta", 1);
 
     int index = -1;
 
     if (ma_wybrane) {
         if (!sprawdz_stolik(index, table_array, wybrane, mem_flags)) {
             kolejka->push_back(wybrane);
-            TRACE(std::cerr << "TRACE: wlaczono push_back(wybrane) at " << __FILE__ << ":" << __LINE__ << std::endl);
         }
     }
 
@@ -118,14 +111,13 @@ void zamowienie(Table *table_array, std::vector<ZlozenieZamowienia> *kolejka, Sh
             if (sprawdz_stolik(index, table_array, *it, mem_flags)) {
                 wybrane = *it;
                 kolejka->erase(it);
-                TRACE(std::cerr << "TRACE: kolejka->erase(it) at " << __FILE__ << ":" << __LINE__ << std::endl);
                 break;
             }
         }
     }
 
     if (index == -1) {
-        TRACE(wyslij_log(msgid_logger, "Kasjer nie znal stolika dla grupy", 1));
+        wyslij_log(msgid_logger, "Kasjer nie znal stolika dla grupy", 1);
         return;
     }
 
@@ -135,12 +127,11 @@ void zamowienie(Table *table_array, std::vector<ZlozenieZamowienia> *kolejka, Sh
 
     msg_pracownik pracownik{ZAMOWIENIE_PRACOWNIK, {index, wybrane.pid, wybrane.zamowienie1, wybrane.zamowienie2, wybrane.zamowienie3, wybrane.zamowienie4}};
 
-    TRACE(msg_send(msgid_zam, &pracownik, sizeof(pracownik.zwrot), 0));
-    TRACE(sem_op(semid_prac, 0, 1));
+    msg_send(msgid_zam, &pracownik, sizeof(pracownik.zwrot), 0);
+    sem_op(semid_prac, 0, 1);
 
-    TRACE(wyslij_log(msgid_logger, "Kasjer skonczyl obsluge klienta. Przydzielony stolik: " + std::to_string(index), 1));
+    wyslij_log(msgid_logger, "Kasjer skonczyl obsluge klienta. Przydzielony stolik: " + std::to_string(index), 1);
 }
-
 
 int main() {
     struct sigaction sa{};
@@ -148,25 +139,26 @@ int main() {
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = 0;
 
-    TRACE(sigaction(SIGINT, &sa, nullptr));
-    TRACE(sigaction(SIGRTMIN, &sa, nullptr));
+    sigaction(SIGINT, &sa, nullptr);
+    sigaction(SIGRTMIN, &sa, nullptr);
 
-    shmid = TRACE(shm_create(ftok(".", 'S'), sizeof(SharedMem) + sizeof(Table) * table_count_max, 0666));
-    auto *base = static_cast<char *>(TRACE(shm_attach(shmid, 0)));
+    shmid = shm_create(ftok(".", 'S'), sizeof(SharedMem) + sizeof(Table) * table_count_max, 0666);
+    auto *base = static_cast<char *>(shm_attach(shmid, 0));
 
     auto *shared_mem_flags = reinterpret_cast<SharedMem *>(base);
     auto *table_array = reinterpret_cast<Table *>(base + sizeof(SharedMem));
 
-    semid = TRACE(sem_create(ftok(".", 'K'), 2, 0666));
+    semid = sem_create(ftok(".", 'K'), 2, 0666);
+    sem_set(semid, 0, MAX_KLIENTOW_W_RRESTAURACJI - 3);
+    sem_set(semid, 1, 0);
 
-    TRACE(sem_op(semid, 0, 1));
-    msgid_zam = TRACE(msg_create(ftok(".", 'Z'), 0666));
-    msgid_logger = TRACE(msg_create(ftok(".", 'L'), 0666));
-    semid_prac = TRACE(sem_create(ftok(".", 'W'), 2, 0666));
-    semid_gk = TRACE(sem_create(ftok(".", 'G'), 4, 0666));
-    table_sem_id = TRACE(sem_create(ftok(".", 'M'), static_cast<int>(shared_mem_flags->tables_array_size / sizeof(Table)), 0666));
+    msgid_zam = msg_create(ftok(".", 'Z'), 0666);
+    msgid_logger = msg_create(ftok(".", 'L'), 0666);
+    semid_prac = sem_create(ftok(".", 'W'), 2, 0666);
+    semid_gk = sem_create(ftok(".", 'G'), 4, 0666);
+    table_sem_id = sem_create(ftok(".", 'M'), static_cast<int>(shared_mem_flags->tables_array_size / sizeof(Table)), 0666);
 
-    TRACE(wyslij_log(msgid_logger, "Kasjer rozpoczyna prace", 1));
+    wyslij_log(msgid_logger, "Kasjer rozpoczyna prace", 1);
 
     std::vector<ZlozenieZamowienia> kolejka;
 
@@ -174,44 +166,38 @@ int main() {
     auto last_handle = clock::now();
 
     while (!shared_mem_flags->end_program && exception_flag == 0 && !shared_mem_flags->all_customers_out) {
-        std::cerr << "kasjer przed zamówieniem, rozmiar kolejka: " << kolejka.size() << std::endl;
-        if (!kolejka.empty() && TRACE(sem_getval(semid, 1)) == 0) {
+        if (!kolejka.empty() && sem_getval(semid, 1) == 0) {
             if (clock::now() - last_handle >= std::chrono::seconds(1)) {
                 if (exception_flag == 1) {
                     break;
                 }
-                TRACE(zamowienie(table_array, &kolejka, shared_mem_flags, false));
+                zamowienie(table_array, &kolejka, shared_mem_flags, false);
                 last_handle = clock::now();
                 continue;
             }
-            TRACE(std::this_thread::sleep_for(std::chrono::milliseconds(100)));
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
             continue;
         }
-        std::cerr << "kasjer po 1 if w petli, rozmiar kolejka: " << kolejka.size() << std::endl;
-        if (TRACE(sem_op(semid, 1, -1, &exception_flag)) == -1) {
+        if (sem_op(semid, 1, -1, &exception_flag) == -1) {
             break;
         }
-        std::cerr << "kasjer po semop, rozmiar kolejka: " << kolejka.size() << std::endl;
-        TRACE(zamowienie(table_array, &kolejka, shared_mem_flags));
-        std::cerr << "kasjer po zam, rozmiar kolejka: " << kolejka.size() << std::endl;
+        zamowienie(table_array, &kolejka, shared_mem_flags);
         last_handle = clock::now();
-        std::cerr << "kasjer po zam clock update, rozmiar kolejka: " << kolejka.size() << std::endl;
     }
 
     if (exception_flag == 1) {
-        TRACE(wyslij_log(msgid_logger, "Kasjer czeka az klienci sie ewakuuja", 5));
+        wyslij_log(msgid_logger, "Kasjer czeka az klienci sie ewakuuja", 5);
     }
     else {
-        TRACE(wyslij_log(msgid_logger, "Kasjer czeka az klienci opuszcza lokal", 5));
+        wyslij_log(msgid_logger, "Kasjer czeka az klienci opuszcza lokal", 5);
     }
 
+    sem_op(semid_gk, 2, -1);
 
-    TRACE(sem_op(semid_gk, 2, -1));
+    zamkniecie_kasy(shared_mem_flags);
 
-    TRACE(zamkniecie_kasy(shared_mem_flags));
+    wyslij_log(msgid_logger, "Kasjer konczy prace", 5);
 
-    TRACE(wyslij_log(msgid_logger, "Kasjer konczy prace", 5));
-
-    TRACE(shm_detach(base));
+    shm_detach(base);
     return 0;
 }

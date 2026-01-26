@@ -78,7 +78,7 @@ void opuszczenie_lokalu(ZamowienieZwrot *zwrot, ZlozenieZamowienia *zam, Table *
             return;
         }
         if (sem_getval(table_sem_id, zwrot->nr_stolika) == table[zwrot->nr_stolika].max_osob) {
-            table[zwrot->nr_stolika].typ_gruoy = 0;
+            table[zwrot->nr_stolika].typ_grupy = 0;
         }
         sem_op(semid_prac, 1, 1);
     }
@@ -96,22 +96,12 @@ void zwrot_naczyn(ZamowienieZwrot *zwrot) {
 void zamowienie(ZlozenieZamowienia *zam, ZamowienieZwrot *zwrot, Table *table) {
     sem_op(semid, 1, 1);
 
-
-    if (sem_op(semid, 0, -1, &sig_flag) == -1) {
-        return;
-    }
-
-    if (!zwrot) {
-        opuszczenie_lokalu(nullptr, zam, table);
-        sem_op(semid, 0, 1);
-        return;
-    }
-
     msg_zamowienie msg{};
     msg.mtype = ZAMOWIENIE;
     msg.zam = *zam;
-
+    sem_op(semid, 0, -1);
     msg_send(msgid_zam, &msg, sizeof(ZlozenieZamowienia), 0);
+
     wyslij_log(msgid_logger, "Grupa klientow [" + std::to_string(getpid()) + "]zlozyla zamowienie: " + std::to_string(zam->liczba_osob) +
                              " osob, Klient 1: pozycja: " + std::to_string(zam->zamowienie1.nr_pozycji_menu) +
                              ", napoj: " + std::to_string(zam->zamowienie1.nr_napoju)
@@ -134,8 +124,6 @@ void zamowienie(ZlozenieZamowienia *zam, ZamowienieZwrot *zwrot, Table *table) {
         return;
     }
     zwrot->nr_stolika = zw_msg.zwrot.nr_stolika;
-
-    sem_op(semid, 0, 1);
 }
 
 int main() {
@@ -147,7 +135,7 @@ int main() {
     sigaction(SIGINT, &sa, nullptr);
     sigaction(SIGRTMIN, &sa, nullptr);
 
-    shmid = shm_create(ftok(".", 'S'), 0, 0666); // Użyj rozmiaru 0, bo segment już istnieje
+    shmid = shm_create(ftok(".", 'S'), 0, 0666);
     auto *base = static_cast<char *>(shm_attach(shmid, 0));
     auto *shared_mem_flags = reinterpret_cast<SharedMem *>(base);
     auto *table_array = reinterpret_cast<Table *>(base + sizeof(SharedMem));

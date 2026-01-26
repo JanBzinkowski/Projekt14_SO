@@ -73,22 +73,22 @@ int main() {
     for (int i = 0; i < X1; i++) {
         table_array[i].max_osob = 1;
         table_array[i].zarezerwowany_pzez_kierownika = false;
-        table_array[i].typ_gruoy = 0;
+        table_array[i].typ_grupy = 0;
     }
     for (int i = X1; i < X1 + X2; i++) {
         table_array[i].max_osob = 2;
         table_array[i].zarezerwowany_pzez_kierownika = false;
-        table_array[i].typ_gruoy = 0;
+        table_array[i].typ_grupy = 0;
     }
     for (int i = X1 + X2; i < X1 + X2 + X3; i++) {
         table_array[i].max_osob = 3;
         table_array[i].zarezerwowany_pzez_kierownika = false;
-        table_array[i].typ_gruoy = 0;
+        table_array[i].typ_grupy = 0;
     }
     for (int i = X1 + X2 + X3; i < X1 + X2 + X3 + X4; i++) {
         table_array[i].max_osob = 4;
         table_array[i].zarezerwowany_pzez_kierownika = false;
-        table_array[i].typ_gruoy = 0;
+        table_array[i].typ_grupy = 0;
     }
 
     for (int i = 0; i < table_count; i++)

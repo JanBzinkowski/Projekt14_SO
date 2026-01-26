@@ -75,7 +75,7 @@ void extra(Table * &table) {
 	for (int i = table_count; i < table_count; i++) {
 		table[i].max_osob = 3;
 		table[i].zarezerwowany_pzez_kierownika = false;
-		table[i].typ_gruoy = 0;
+		table[i].typ_grupy = 0;
 	}
 }
 
