@@ -45,6 +45,10 @@ bool sprawdz_stolik(int &index, Table *table_array, ZlozenieZamowienia const &za
 
             sem_op(semid_prac, 1, 1);
 
+            if (!ok) {
+                continue;
+            }
+
             if (sem_op(table_sem_id, index, -zam.liczba_osob, nullptr, IPC_NOWAIT) == -1) {
                 continue;
             }

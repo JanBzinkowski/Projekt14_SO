@@ -88,6 +88,7 @@ void opuszczenie_lokalu(ZamowienieZwrot *zwrot, ZlozenieZamowienia *zam, Table *
     sem_op(genid, 3, 1);
 }
 
+
 void zwrot_naczyn(ZamowienieZwrot *zwrot) {
     sleep(2);
     wyslij_log(msgid_logger, "Grupa klientow oddala naczynia, stolik nr: " + std::to_string(zwrot->nr_stolika), 2);
@@ -96,10 +97,18 @@ void zwrot_naczyn(ZamowienieZwrot *zwrot) {
 void zamowienie(ZlozenieZamowienia *zam, ZamowienieZwrot *zwrot, Table *table) {
     sem_op(semid, 1, 1);
 
+    if (!zwrot) {
+        wyslij_log(msgid_logger, "Klient nic nie zamawia");
+        opuszczenie_lokalu(zwrot, zam, table);
+        return;
+    }
+
     msg_zamowienie msg{};
     msg.mtype = ZAMOWIENIE;
     msg.zam = *zam;
-    sem_op(semid, 0, -1);
+    if (sem_op(semid, 0, -1, &sig_flag) == -1) {
+        return;
+    }
     msg_send(msgid_zam, &msg, sizeof(ZlozenieZamowienia), 0);
 
     wyslij_log(msgid_logger, "Grupa klientow [" + std::to_string(getpid()) + "]zlozyla zamowienie: " + std::to_string(zam->liczba_osob) +
@@ -135,7 +144,7 @@ int main() {
     sigaction(SIGINT, &sa, nullptr);
     sigaction(SIGRTMIN, &sa, nullptr);
 
-    shmid = shm_create(ftok(".", 'S'), 0, 0666);
+    shmid = shm_create(ftok(".", 'S'), sizeof(SharedMem) + sizeof(Table) * table_count_max, 0666);
     auto *base = static_cast<char *>(shm_attach(shmid, 0));
     auto *shared_mem_flags = reinterpret_cast<SharedMem *>(base);
     auto *table_array = reinterpret_cast<Table *>(base + sizeof(SharedMem));

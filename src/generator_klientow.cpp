@@ -40,7 +40,7 @@ void handler(int sig) {
 void watek() {
 	wyslij_log(msgid_logger, "Watek do czyszczenia procesow zombie uruchomiony.", 4);
 
-	while (!stop_thread) {
+	while (true) {
 		int status = 0;
 
 		pid_t pid = waitpid(-1, &status, 0);
@@ -51,23 +51,17 @@ void watek() {
 			if (it != pids.end()) {
 				wyslij_log(msgid_logger, "Zabito proces [" + std::to_string(pid) + "]", 4);
 				pids.erase(it);
-				sem_op(semid, 1, 1);
 			}
+			sem_op(semid, 1, 1);
 		}
 		else if (pid == -1 && errno == ECHILD) {
-			break;
+			if (stop_thread) {
+				break;
+			}
 		}
 		else if (pid == -1 && errno != EINTR) {
 			perror("waitpid error");
 			break;
-		}
-
-		for (int i = 0; i < table_count_max; i++) {
-			std::cout << "Stolik " << i << " ma " << sem_getval(semid, i) << " wolnych miejsc." << std::endl;
-			std::cout << "-----------------------" << std::endl;
-			std::cout << "Max osób: " << table_array[i].max_osob << std::endl;
-			std::cout << "Typ siedzącj grupy: " << table_array[i].typ_grupy << std::endl;
-			std::cout << "Czy zarezerwowany?: " << table_array[i].zarezerwowany_pzez_kierownika << std::endl;
 		}
 	}
 
@@ -89,17 +83,10 @@ int main() {
 	sigaction(SIGINT, &sa, nullptr);
 	sigaction(SIGRTMIN, &sa, nullptr);
 	sigaction(SIGCHLD, &sa_child, nullptr);
-	//signal(SIGCHLD, SIG_IGN);
 
 
-	//int shmid = shm_create(ftok(".", 'S'), sizeof(SharedMem)+table_count_max*sizeof(Table), 0666);
-	//auto *shared_mem_flags = static_cast<SharedMem *>(shm_attach(shmid, 0));
-	int shmid = shm_create(ftok(".", 'S'), sizeof(SharedMem) + sizeof(Table) * table_count_max, 0666);
-	auto *base = static_cast<char *>(shm_attach(shmid, 0));
-
-	auto *shared_mem_flags = reinterpret_cast<SharedMem *>(base);
-	table_array = reinterpret_cast<Table *>(base + sizeof(SharedMem));
-
+	int shmid = shm_create(ftok(".", 'S'), sizeof(SharedMem) + table_count_max * sizeof(Table), 0666);
+	auto *shared_mem_flags = static_cast<SharedMem *>(shm_attach(shmid, 0));
 
 	semid = sem_create(ftok(".", 'G'), 4, 0666);
 	sem_set(semid, 0, 1);
@@ -138,24 +125,13 @@ int main() {
 			}
 		}
 	}
-	for (int i = 0; i < pids.size(); ++i) {
-		pid_t zakonczony;
-		std::lock_guard<std::mutex> lock(pids_mutex);
-		do {
-			zakonczony = waitpid(-1, nullptr, 0);
-		} while (errno == EINTR);
-		auto it = std::find(pids.begin(), pids.end(), zakonczony);
-		if (it != pids.end()) {
-			pids.erase(it);
-		}
-	}
 	{
 		std::lock_guard<std::mutex> lock(pids_mutex);
-		int r;
-		for (auto pid: pids) {
+		for (int i = 0; i < pids.size(); ++i) {
+			pid_t zakonczony;
 			do {
-				r = waitpid(-1, nullptr, 0);
-			} while (r == -1 && errno == EINTR);
+				zakonczony = waitpid(-1, nullptr, 0);
+			} while (zakonczony == -1 && errno == EINTR);
 		}
 	}
 	stop_thread = true;
