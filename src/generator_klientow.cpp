@@ -25,7 +25,9 @@ int semid, msgid_logger;
 
 std::vector<pid_t> pids;
 
-void sigchld_handler(int) {}
+void sigchld_handler(int) {
+	//pusty handler, dla unikniecia blokowania w waitpid
+}
 
 void handler(int sig) {
 	if (sig == SIGINT || sig == SIGRTMIN) {
@@ -40,7 +42,7 @@ void handler(int sig) {
 void watek() {
 	wyslij_log(msgid_logger, "Watek do czyszczenia procesow zombie uruchomiony.", 4);
 
-	while (true) {
+	while (!stop_thread) {
 		int status = 0;
 
 		pid_t pid = waitpid(-1, &status, 0);
@@ -54,11 +56,7 @@ void watek() {
 			}
 			sem_op(semid, 1, 1);
 		}
-		else if (pid == -1 && errno == ECHILD) {
-			if (stop_thread) {
-				break;
-			}
-		}
+		else if (pid == -1 && errno == ECHILD) {}
 		else if (pid == -1 && errno != EINTR) {
 			perror("waitpid error");
 			break;
@@ -125,6 +123,7 @@ int main() {
 			}
 		}
 	}
+	stop_thread = true;
 	{
 		std::lock_guard<std::mutex> lock(pids_mutex);
 		for (int i = 0; i < pids.size(); ++i) {
@@ -134,7 +133,6 @@ int main() {
 			} while (zakonczony == -1 && errno == EINTR);
 		}
 	}
-	stop_thread = true;
 	if (tid.joinable())
 		tid.join();
 

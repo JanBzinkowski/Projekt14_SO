@@ -132,7 +132,7 @@ void zamowienie(ZlozenieZamowienia *zam, ZamowienieZwrot *zwrot, Table *table) {
     if (msg_recv(msgid_zam, &zw_msg, sizeof(ZamowienieZwrot), getpid(), 0, &sig_flag) == -1) {
         return;
     }
-    zwrot->nr_stolika = zw_msg.zwrot.nr_stolika;
+    *zwrot = zw_msg.zwrot;
 }
 
 int main() {
@@ -164,6 +164,7 @@ int main() {
 
     if (0.05 < rand_double()) {
         zamowienie(&zam, nullptr, table_array);
+        shm_detach(base);
         return 0;
     }
     std::vector<pthread_t> tids;
@@ -192,7 +193,6 @@ int main() {
     }
     if (zwrot.nr_stolika < 0) {
         wyslij_log(msgid_logger, "Klient nie znalazl stolika i wyszedl. [" + std::to_string(getpid()) + "]", 2);
-        sem_op(genid, 3, 1);
         shm_detach(base);
         return 0;
     }
