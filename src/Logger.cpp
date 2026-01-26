@@ -17,14 +17,14 @@ void handler(int sig) {
 std::string timestamp() {
 	using namespace std::chrono;
 	const auto now = system_clock::now();
-	const auto ms = duration_cast<milliseconds>(now.time_since_epoch()) %1000;
+	const auto ms = duration_cast<milliseconds>(now.time_since_epoch()) % 1000;
 	std::time_t t = system_clock::to_time_t(now);
 	std::tm tm_now{};
 	localtime_r(&t, &tm_now);
 
 	std::ostringstream oss;
 	oss << std::put_time(&tm_now, "%Y-%m-%d %H:%M:%S")
-	<< '.' << std::setfill('0') << std::setw(3) << ms.count();
+			<< '.' << std::setfill('0') << std::setw(3) << ms.count();
 	return oss.str();
 }
 
