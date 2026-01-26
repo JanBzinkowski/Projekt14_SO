@@ -52,11 +52,12 @@ void rezerwacje(KierownikRezerwacja &rezerwacja, Table *table, SharedMem *mem_fl
 
 		int reserved_base3 = std::min(rezerwacja.reserved.x3, X3);
 		for (int i = start3; i < start3 + reserved_base3; i++)
-			table[i].zarezerwowany_pzez_kierownika = true;
+			for (int i = start3; i < start3 + reserved_base3; i++)
+				table[i].zarezerwowany_pzez_kierownika = true;
 
 		int reserved_extra3 = rezerwacja.reserved.x3 - reserved_base3;
 		if (reserved_extra3 > 0) {
-			int start3_extra = table_count - added3;
+			int start3_extra = mem_flags->table_count - added3;
 			for (int i = start3_extra; i < start3_extra + std::min(reserved_extra3, added3); i++)
 				table[i].zarezerwowany_pzez_kierownika = true;
 		}
@@ -70,10 +71,10 @@ void rezerwacje(KierownikRezerwacja &rezerwacja, Table *table, SharedMem *mem_fl
 }
 
 
-void extra(Table * &table) {
-	int old_table_count = table_count;
-	table_count += (X3 == 0 ? 1 : X3);
-	for (int i = old_table_count; i < table_count; i++) {
+void extra(Table * &table, SharedMem * &mem_flags) {
+	int old_table_count = mem_flags->table_count;
+	mem_flags->table_count += (X3 == 0 ? 1 : X3);
+	for (int i = old_table_count; i < mem_flags->table_count; i++) {
 		table[i].max_osob = 3;
 		table[i].zarezerwowany_pzez_kierownika = false;
 		table[i].typ_grupy = 0;
@@ -83,7 +84,7 @@ void extra(Table * &table) {
 
 void zamowienie() {
 	msg_pracownik msg{};
-	if (msg_recv(msgid_zam, &msg, sizeof(msg.zwrot), ZAMOWIENIE_PRACOWNIK, 0, &fire_sig_flag) == -1) {
+	if (msg_recv(msgid_zam, &msg, sizeof(msg.zwrot), ZAMOWIENIE_PRACOWNIK, 0, &sig_flag) == -1) {
 		return;
 	}
 
@@ -128,7 +129,7 @@ int main() {
 	semid = sem_create(ftok(".", 'W'), 2, 0666);
 	semid_gk = sem_create(ftok(".", 'G'), 4, 0666);
 	msgid_kierownik = msg_create(ftok(".", 'I'), 0666);
-	table_sem_id = sem_create(ftok(".", 'M'), table_count_max, 0666);
+	table_sem_id = sem_create(ftok(".", 'M'), shared_mem_flags->max_table_count, 0666);
 
 	wyslij_log(msgid_logger, "Pracownik rozpoczyna prace", 3);
 
@@ -145,7 +146,7 @@ int main() {
 		}
 		if (sig_flag == 1) {
 			sig_flag = 0;
-			extra(table_array);
+			extra(table_array, shared_mem_flags);
 			wyslij_log(msgid_logger, "Pracownik doniosl stoly", 3);
 		}
 		else if (sig_flag == 2) {

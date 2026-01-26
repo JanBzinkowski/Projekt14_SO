@@ -121,7 +121,7 @@ void zamowienie(Table *table_array, std::vector<ZlozenieZamowienia> *kolejka, Sh
     }
 
     if (index == -1) {
-        wyslij_log(msgid_logger, "Kasjer nie znal stolika dla grupy", 1);
+        wyslij_log(msgid_logger, "Kasjer nie znalazl stolika dla grupy", 1);
         return;
     }
 
