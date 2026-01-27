@@ -27,6 +27,7 @@ void sigchld_handler(int) {
 	//pusty handler, dla unikniecia blokowania w waitpid
 }
 
+
 void handler(int sig) {
 	if (sig == SIGINT || sig == SIGRTMIN) {
 		fire_sig_flag = 1;

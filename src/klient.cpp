@@ -50,7 +50,16 @@ static double rand_double() {
 
 struct ThreadArgs {
     Zamowienie *zamowienie;
+    bool czy_zwraca = false;
+    ZamowienieZwrot *zwrot = nullptr;
 };
+
+
+void zwrot_naczyn(ZamowienieZwrot *zwrot) {
+    sleep(2);
+    wyslij_log(msgid_logger, "Grupa klientow oddala naczynia, stolik nr: " + std::to_string(zwrot->nr_stolika), 2);
+}
+
 
 void *decyzja_menu(void *args) {
     auto zamowienie = (ThreadArgs *) args;
@@ -65,6 +74,9 @@ void *jedzenie(void *args) {
 
     if (sig_flag == 0) {
         wyslij_log(msgid_logger, "Klient skonczyl swoj posilek", 2);
+    }
+    if (zamowienie->czy_zwraca && sig_flag == 0) {
+        zwrot_naczyn(zamowienie->zwrot);
     }
     return nullptr;
 }
@@ -86,12 +98,6 @@ void opuszczenie_lokalu(ZamowienieZwrot *zwrot, ZlozenieZamowienia *zam, Table *
         wyslij_log(msgid_logger, "Grupa klientow opuscila restauracje, stolik nr: " + (zwrot ? std::to_string(zwrot->nr_stolika) : "brak zamowienia") + ", rozmiar grupy: " + std::to_string(zam->liczba_osob), 2);
     }
     sem_op(genid, 3, 1);
-}
-
-
-void zwrot_naczyn(ZamowienieZwrot *zwrot) {
-    sleep(2);
-    wyslij_log(msgid_logger, "Grupa klientow oddala naczynia, stolik nr: " + std::to_string(zwrot->nr_stolika), 2);
 }
 
 void zamowienie(ZlozenieZamowienia *zam, ZamowienieZwrot *zwrot) {
@@ -162,7 +168,7 @@ int main() {
         return 0;
     }
     std::vector<pthread_t> tids;
-    std::vector<ThreadArgs> thread_args{{&zam.zamowienie1}, {&zam.zamowienie2}, {&zam.zamowienie3}, {&zam.zamowienie4}};
+    std::vector<ThreadArgs> thread_args{{&zam.zamowienie1, true}, {&zam.zamowienie2}, {&zam.zamowienie3}, {&zam.zamowienie4}};
     for (int i = 0; i < zam.liczba_osob; i++) {
         pthread_t tid_t;
         if (pthread_create(&tid_t, nullptr, decyzja_menu, &thread_args[i]) != 0) {
@@ -180,6 +186,7 @@ int main() {
     ZamowienieZwrot zwrot;
     zwrot.nr_stolika = -1;
     zamowienie(&zam, &zwrot);
+    thread_args[1].zwrot = &zwrot;
     if (sig_flag) {
         opuszczenie_lokalu(nullptr, &zam, table_array, shared_mem_flags);
         shm_detach(base);
@@ -205,10 +212,6 @@ int main() {
 
     for (const auto tid: tids) {
         pthread_join(tid, nullptr);
-    }
-
-    if (sig_flag == 0) {
-        zwrot_naczyn(&zwrot);
     }
 
     opuszczenie_lokalu(&zwrot, &zam, table_array, shared_mem_flags);
