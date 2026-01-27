@@ -531,3 +531,71 @@ Jak widać Po rezerwacji stołu i skończeniu przez klientów którzy już tam s
 
 ***Test udany.***
 
+#### Test 4 - Klienci jedzą swoje dania natychmiastowo. (usunięcie sleep)
+Zmieniamy zmienne:
+```MAX_KLIENTOW``` - ([Shared_memory.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Shared_memory.h#L9)) zmiana na: 10000
+
+```MAX_KLIENTOW_W_RRESTAURACJI``` - ([Shared_memory.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Shared_memory.h#L9)) zmiana na: 120
+
+```X1``` ([Tables.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Tables.h#L7)) zmiana na: 5
+
+```X2``` ([Tables.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Tables.h#L8)) zmiana na: 5
+
+```X3``` ([Tables.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Tables.h#L9)) zmiana na: 5
+
+```X4``` ([Tables.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Tables.h#L10)) zmiana na: 5
+
+```CUSTOM_SLEEP_TIME``` ([klient.cpp](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/src/klient.cpp#L17)) zmiana na 0
+
+```SLEEP``` ([klient.cpp](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/src/klient.cpp#L16)) zmiana na //sleep
+
+Test ma na celu udowodnienei iż funkcja ```sleep()``` nie jest traktowana jako mechanizm synchronizacji międzyprocesowej. 
+
+Logi testu:
+```
+Logger uruchomiony. Odbieranie wiadomości...
+[2026-01-27 14:36:44.942][mtype=1] Kasjer rozpoczyna prace
+[2026-01-27 14:36:44.942][mtype=3] Pracownik rozpoczyna prace
+[2026-01-27 14:36:44.942][mtype=4] Watek do czyszczenia procesow zombie uruchomiony.
+[2026-01-27 14:36:44.942][mtype=4] Utworzono klienta: [389438]
+[2026-01-27 14:36:44.942][mtype=4] Utworzono klienta: [389439]
+[2026-01-27 14:36:44.942][mtype=4] Utworzono klienta: [389440]
+[2026-01-27 14:36:44.942][mtype=4] Utworzono klienta: [389441]
+
+...
+
+[2026-01-27 14:37:17.581][mtype=4] Zabito proces [481567]
+[2026-01-27 14:37:17.581][mtype=4] Zabito proces [481568]
+[2026-01-27 14:37:17.581][mtype=4] Zabito proces [481569]
+[2026-01-27 14:37:17.581][mtype=4] Zabito proces [481570]
+[2026-01-27 14:37:17.581][mtype=4] Zabito proces [481571]
+[2026-01-27 14:37:17.581][mtype=4] Zabito proces [481572]
+[2026-01-27 14:37:17.581][mtype=4] Zabito proces [481573]
+[2026-01-27 14:37:17.581][mtype=4] Zabito proces [481574]
+[2026-01-27 14:37:17.591][mtype=4] Watek do czyszczenia procesow zombie zakonczony.
+[2026-01-27 14:37:17.591][mtype=4] Klienci opuscili lokal, generator klientow konczy dzialanie
+[2026-01-27 14:37:17.591][mtype=5] Pracownik konczy prace
+[2026-01-27 14:37:17.591][mtype=5] Kasjer zamyka kase
+[2026-01-27 14:37:17.591][mtype=5] Dzisiejszy utarg to: 167918 zl
+[2026-01-27 14:37:17.591][mtype=5] Kasjer konczy prace
+Logger zakończony.
+```
+
+Logi pokazują iż w krótkim czasie symulacji (ok 45s) wygenerowany został dochód: ```167918zł```. Oznacza to że po usunięciu funkcji sleep z programu pracownika symulacja znacznie przyspiesza oraz nie blokuje się (brak problemów z synchronizacją).
+
+## 8. Elementy wyróżniające:
+- konsola w programie ```kierownik``` pozwalająca na obsługę sygnałów oraz rezerwację określonej, podanej w konsoli ilości stolików.
+- funkcja zapewniająca unikalne ziarno generatora umożliwiające pełną losowość w wyborach poszczególnych wątków ```klientów``` mimo znacznej szybkości działania programu.
+
+## 9. Problemy napotkane podczas realizacji projektu i zastosowane rozwiązania
+- Procesy zombie (pozostałości po klientach którzy już opuścili bar)
+  - Problem: po opuszczeniu przez klienta baru zostawał on procesem zombie (zakończonym procesem, który jednak zajmował dalej miejsce w systemie)
+  - Rozwiązanie: asynchroniczny wątek sprzątający w programie genratora, który na bieżąco czyści procesy zombie funkcją ```waitpid()```
+ 
+- Synchronizacja procesów podczas zamykania restauracji/ewakuacji
+  - Problem: procesy pracownika i kasjera powinny się kończyć dopiero po wyjściu wszystkich klientów z lokalu.
+  - Rozwiązanie: zastosowanie semafora blokującego procesy pracownika i kasjera do czasu wyjścia klientów.
+ 
+- Race condition
+  - Problem: różne procesy/wątki mogą chcieć dostęp do tych samych zasobów w tym samym czasie.
+  - Rozwiązanie: zastosowanie mutexów w postaci semaforów oraz ```std::mutex```
