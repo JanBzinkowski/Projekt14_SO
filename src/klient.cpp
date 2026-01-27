@@ -13,6 +13,8 @@
 #include "../include/Wrappers.h"
 #include "../include/Shared_memory.h"
 
+#define  SLEEP sleep
+
 int shmid, semid, msgid_zam, genid;
 int msgid_logger;
 
@@ -56,7 +58,7 @@ struct ThreadArgs {
 
 
 void zwrot_naczyn(ZamowienieZwrot *zwrot) {
-    sleep(2);
+    SLEEP(2);
     wyslij_log(msgid_logger, "Grupa klientow oddala naczynia, stolik nr: " + std::to_string(zwrot->nr_stolika), 2);
 }
 
@@ -70,7 +72,7 @@ void *decyzja_menu(void *args) {
 
 void *jedzenie(void *args) {
     auto zamowienie = (ThreadArgs *) args;
-    sleep(zamowienie->zamowienie->nr_pozycji_menu + zamowienie->zamowienie->nr_napoju);
+    SLEEP(zamowienie->zamowienie->nr_pozycji_menu + zamowienie->zamowienie->nr_napoju);
 
     if (sig_flag == 0) {
         wyslij_log(msgid_logger, "Klient skonczyl swoj posilek", 2);
