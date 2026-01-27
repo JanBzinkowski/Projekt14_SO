@@ -141,14 +141,14 @@ int main() {
 
     for (const auto chpid: pids) {
         pid_t ret;
+        if (chpid == logger_pid) {
+            wyslij_log(msgid_logger, "", 999);
+        }
         do {
             ret = waitpid(chpid, nullptr, 0);
         } while (ret == -1 && errno == EINTR);
         if (chpid != logger_pid) {
             sem_op(logger_semid, 0, -1);
-        }
-        if (sem_getval(logger_semid, 0) == 0) {
-            wyslij_log(msgid_logger, "", 999);
         }
         std::cerr << "zakonczono: [" + std::to_string(chpid) + "]" << std::endl;
     }
