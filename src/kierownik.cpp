@@ -2,10 +2,10 @@
 #include <unistd.h>
 #include <csignal>
 
-#include "../include/wrappers.h"
+#include "../include/Wrappers.h"
 #include "../include/Shared_memory.h"
 #include "../include/Tables.h"
-#include "../include/zamowienie.h"
+#include "../include/Zamowienie.h"
 
 int msgid_kierownik, gen_semid, semid_prac;
 

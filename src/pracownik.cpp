@@ -4,10 +4,10 @@
 #include <cstring>
 #include <csignal>
 
-#include "../include/zamowienie.h"
+#include "../include/Zamowienie.h"
 #include "../include/Shared_memory.h"
 #include "../include/Tables.h"
-#include "../include/wrappers.h"
+#include "../include/Wrappers.h"
 
 int shmid, semid, semid_gk, msgid_zam, msgid_logger, msgid_kierownik, table_sem_id;
 

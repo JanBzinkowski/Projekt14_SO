@@ -8,9 +8,9 @@
 #include <random>
 #include <chrono>
 #include <cstdint>
-#include "../include/zamowienie.h"
+#include "../include/Zamowienie.h"
 #include "../include/Tables.h"
-#include "../include/wrappers.h"
+#include "../include/Wrappers.h"
 #include "../include/Shared_memory.h"
 
 int shmid, semid, msgid_zam, genid;

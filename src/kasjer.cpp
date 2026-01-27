@@ -7,10 +7,10 @@
 #include <chrono>
 #include <thread>
 
-#include "../include/zamowienie.h"
+#include "../include/Zamowienie.h"
 #include "../include/Shared_memory.h"
 #include "../include/Tables.h"
-#include "../include/wrappers.h"
+#include "../include/Wrappers.h"
 
 int shmid, semid, semid_gk, semid_prac, msgid_zam, msgid_logger, table_sem_id;
 

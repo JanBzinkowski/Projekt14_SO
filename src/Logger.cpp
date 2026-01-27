@@ -4,14 +4,14 @@
 #include <sstream>
 #include <unistd.h>
 #include <chrono>
-#include "../include/wrappers.h"
+
+#include "../include/Wrappers.h"
 #include "../include/Shared_memory.h"
 
-volatile sig_atomic_t fire_flag = 0;
 int msgid;
 
 void handler(int sig) {
-	fire_flag = 1;
+	//puusty handler aby unikąć przerywania w działaniu programu
 }
 
 std::string timestamp() {
