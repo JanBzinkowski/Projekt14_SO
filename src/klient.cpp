@@ -31,7 +31,7 @@ static uint64_t make_seed() {
     uint64_t seed = ((uint64_t) rd() << 32) ^ (uint64_t) rd();
     seed ^= (uint64_t) std::chrono::high_resolution_clock::now().time_since_epoch().count();
     seed ^= (uint64_t) getpid();
-    seed ^= (uint64_t) (uintptr_t) pthread_self();
+    seed ^= pthread_self();
     return seed;
 }
 
