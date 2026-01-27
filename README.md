@@ -11,6 +11,8 @@
 
 ### Kompilator: g++ version 11.4.0
 
+### CMake: CMake VERSION 3.20
+
 ---
 
 ## 1. Opis tematu
@@ -39,4 +41,6 @@ Przy zamknięciu kasy kasjer liczy utarg z symulacji.
 
 ### Jak poprawnie uruchomić program
 
-Aby uruchomić program główny (symulację restauracji) należy 
+#### Kompilacja projektu
+Będąc w głównym folderze projektu wpisać następujące komendy:
+
