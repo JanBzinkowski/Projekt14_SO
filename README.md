@@ -331,7 +331,7 @@ Zmieniamy zmiene:
 
 ```X4``` ([Tables.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Tables.h#L10)) zmiana na: 1
 
-```CUSTOM_SLEEP_TIME``` ([klient.cpp](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/src/klient.cpp#L17)) zmiana na 10
+```CUSTOM_SLEEP_TIME``` ([klient.cpp](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/src/klient.cpp#L17)) zmiana na 0
 
 test ma na celu sprawdzenie poprawnego działania programu przy dużym obciążeniu.
 
