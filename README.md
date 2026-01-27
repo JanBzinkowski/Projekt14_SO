@@ -335,8 +335,9 @@ Zmieniamy zmiene:
 
 test ma na celu sprawdzenie poprawnego działania programu przy dużym obciążeniu.
 
-
-Logi testu:
+<details>
+<summary>Logi testu: (rozwiń aby zobaczyć)</summary>
+  
 ```
 Logger uruchomiony. Odbieranie wiadomości...
 [2026-01-27 12:59:14.287][mtype=1] Kasjer rozpoczyna prace
@@ -375,10 +376,13 @@ Logger uruchomiony. Odbieranie wiadomości...
 [2026-01-27 13:03:14.394][mtype=5] Kasjer konczy prace
 Logger zakończony.
 ```
+</details>
 
 W logach widać że przez 4 min pracy przy takim obciążeniu klientów program nie został zablokowany oraz zakończył się prawidłowo (wszyscy klienci opuścili restaurację, struktury IPC zostały poprawnie usunięte). 
 
 ***Test udany.***
+
+--- 
 
 #### Test 2 - Test obciążenia procesora przy małym ruchu
 Zmieniamy zmienne:
@@ -398,7 +402,9 @@ Zmieniamy zmienne:
 
 Test ten ma sprawdzać czy symulacja poprawnie się usypia (nie marnuje zasobów procesora) jeśli ruch jest mały.
 
-```top``` przy rególarnym użytkowaniu:
+<details>
+<summary>```top``` przy rególarnym użytkowaniu: (rozwiń aby zobaczyć)</summary>
+
 ```
 top - 13:29:19 up  4:42,  1 user,  load average: 0,75, 1,41, 4,23
 Zadania:razem: 356, działających:   1, śpiących: 353, zatrzymanych:   0, zombie:   2
@@ -408,8 +414,12 @@ MiB Swap:   1950,0 razem,    325,5 wolne,   1624,5 użyte.   5944,0 dost. RAM
 
     PID UŻYTK.    PR  NI    WIRT    REZ    WSP S  %CPU  %PAM     CZAS+ KOMENDA
 ```
+</details>
 
-```top``` przy braku ruchu:
+<details>
+
+<summary>```top``` przy braku ruchu: (rozwiń aby zobaczyć)</summary>
+
 ```
 top - 13:28:04 up  4:41,  1 user,  load average: 1,94, 1,74, 4,56
 Zadania:razem: 412, działających:   1, śpiących: 409, zatrzymanych:   0, zombie:   2
@@ -419,9 +429,13 @@ MiB Swap:   1950,0 razem,    325,2 wolne,   1624,8 użyte.   5890,1 dost. RAM
 
     PID UŻYTK.    PR  NI    WIRT    REZ    WSP S  %CPU  %PAM     CZAS+ KOMENDA  
 ```
+</details>
+
 Jak widać przy braku ruchu zasoby cpu nie są nadmiernie zużywane. Wszystkie procesy śpią. 
 
 ***Test udany.***
+
+---
 
 #### Test 3 - Rezerwacja wszystkich dostępnych stolików w restauracji:
 Zmieniamy zmienne:
@@ -470,7 +484,9 @@ Ile X4 zarezerwowac?
 10
 ```
 
-Logi testu:
+<details>
+<summary>Logi testu: (rozwiń aby zobaczyć)</summary>
+
 ```
 Logger uruchomiony. Odbieranie wiadomości...
 [2026-01-27 14:15:31.965][mtype=1] Kasjer rozpoczyna prace
@@ -527,9 +543,13 @@ Logger uruchomiony. Odbieranie wiadomości...
 [2026-01-27 14:18:44.947][mtype=5] Kasjer konczy prace
 Logger zakończony.
 ```
+</details>
+
 Jak widać Po rezerwacji stołu i skończeniu przez klientów którzy już tam siedzieli posiłków kasjer nie może znaleźć miejsca dla żadnych innych klientów. Następnie po zamknięciu restauracji wszyscy klienci opuszczają lokal poprawnie. 
 
 ***Test udany.***
+
+---
 
 #### Test 4 - Klienci jedzą swoje dania natychmiastowo. (usunięcie sleep)
 Zmieniamy zmienne:
@@ -551,7 +571,9 @@ Zmieniamy zmienne:
 
 Test ma na celu udowodnienei iż funkcja ```sleep()``` nie jest traktowana jako mechanizm synchronizacji międzyprocesowej. 
 
-Logi testu:
+<details>
+<summary>Logi testu: (rozwiń aby zobaczyć)</summary>
+
 ```
 Logger uruchomiony. Odbieranie wiadomości...
 [2026-01-27 14:36:44.942][mtype=1] Kasjer rozpoczyna prace
@@ -580,6 +602,7 @@ Logger uruchomiony. Odbieranie wiadomości...
 [2026-01-27 14:37:17.591][mtype=5] Kasjer konczy prace
 Logger zakończony.
 ```
+</details>
 
 Logi pokazują iż w krótkim czasie symulacji (ok 45s) wygenerowany został dochód: ```167918zł```. Oznacza to że po usunięciu funkcji sleep z programu pracownika symulacja znacznie przyspiesza oraz nie blokuje się (brak problemów z synchronizacją).
 
