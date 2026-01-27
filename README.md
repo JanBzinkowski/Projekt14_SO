@@ -403,7 +403,7 @@ Zmieniamy zmienne:
 Test ten ma sprawdzać czy symulacja poprawnie się usypia (nie marnuje zasobów procesora) jeśli ruch jest mały.
 
 <details>
-<summary>```top``` przy rególarnym użytkowaniu: (rozwiń aby zobaczyć)</summary>
+<summary> top przy rególarnym użytkowaniu: (rozwiń aby zobaczyć)</summary>
 
 ```
 top - 13:29:19 up  4:42,  1 user,  load average: 0,75, 1,41, 4,23
@@ -418,7 +418,7 @@ MiB Swap:   1950,0 razem,    325,5 wolne,   1624,5 użyte.   5944,0 dost. RAM
 
 <details>
 
-<summary>```top``` przy braku ruchu: (rozwiń aby zobaczyć)</summary>
+<summary> top przy braku ruchu: (rozwiń aby zobaczyć)</summary>
 
 ```
 top - 13:28:04 up  4:41,  1 user,  load average: 1,94, 1,74, 4,56
