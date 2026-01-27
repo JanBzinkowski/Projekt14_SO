@@ -44,7 +44,7 @@ int main() {
 	msgid = msg_create(ftok(".", 'L'), 0666);
 	int logger_semid = sem_create(ftok(".", 'P'), 1, 0666);
 
-	std::ofstream log_file("../log.txt", std::ios::app);
+	std::ofstream log_file("../log.txt", std::ios::trunc);
 	if (!log_file.is_open()) {
 		std::cerr << "Nie można otworzyć pliku ../log.txt" << std::endl;
 		return 1;
