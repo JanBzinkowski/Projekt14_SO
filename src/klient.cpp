@@ -13,7 +13,8 @@
 #include "../include/Wrappers.h"
 #include "../include/Shared_memory.h"
 
-#define  SLEEP sleep
+#define SLEEP sleep
+#define CUSTOM_SLEEP_TIME 0
 
 int shmid, semid, msgid_zam, genid;
 int msgid_logger;
@@ -58,7 +59,7 @@ struct ThreadArgs {
 
 
 void zwrot_naczyn(ZamowienieZwrot *zwrot) {
-    SLEEP(2);
+    SLEEP(CUSTOM_SLEEP_TIME > 0 ? CUSTOM_SLEEP_TIME : 2);
     wyslij_log(msgid_logger, "Grupa klientow oddala naczynia, stolik nr: " + std::to_string(zwrot->nr_stolika), 2);
 }
 
@@ -72,7 +73,7 @@ void *decyzja_menu(void *args) {
 
 void *jedzenie(void *args) {
     auto zamowienie = (ThreadArgs *) args;
-    SLEEP(zamowienie->zamowienie->nr_pozycji_menu + zamowienie->zamowienie->nr_napoju);
+    SLEEP(CUSTOM_SLEEP_TIME > 0 ? CUSTOM_SLEEP_TIME : zamowienie->zamowienie->nr_pozycji_menu + zamowienie->zamowienie->nr_napoju);
 
     if (sig_flag == 0) {
         wyslij_log(msgid_logger, "Klient skonczyl swoj posilek", 2);
@@ -170,7 +171,7 @@ int main() {
         return 0;
     }
     std::vector<pthread_t> tids;
-    std::vector<ThreadArgs> thread_args{{&zam.zamowienie1, true}, {&zam.zamowienie2}, {&zam.zamowienie3}, {&zam.zamowienie4}};
+    std::vector<ThreadArgs> thread_args{{&zam.zamowienie1, true}, {&zam.zamowienie2, false}, {&zam.zamowienie3, false}, {&zam.zamowienie4, false}};
     for (int i = 0; i < zam.liczba_osob; i++) {
         pthread_t tid_t;
         if (pthread_create(&tid_t, nullptr, decyzja_menu, &thread_args[i]) != 0) {
@@ -188,8 +189,8 @@ int main() {
     ZamowienieZwrot zwrot;
     zwrot.nr_stolika = -1;
     zamowienie(&zam, &zwrot);
-    thread_args[1].zwrot = &zwrot;
-    if (sig_flag) {
+    thread_args[0].zwrot = &zwrot;
+    if (sig_flag == 1) {
         opuszczenie_lokalu(nullptr, &zam, table_array, shared_mem_flags);
         shm_detach(base);
         return 0;

@@ -1,7 +1,6 @@
 #include "../include/Wrappers.h"
 #include <cstring>
 #include <iostream>
-
 #include <sys/shm.h>
 #include <sys/msg.h>
 
@@ -38,7 +37,7 @@ void shm_remove(int shmid) {
 
 int sem_create(key_t key, int nsems, int flags) {
 	if (key == -1)
-		ipc_die("ftok shm_key");
+		ipc_die("ftok sem_key");
 	int semid = semget(key, nsems, flags);
 	if (semid == -1)
 		ipc_die("semget");
@@ -99,7 +98,7 @@ int sem_getval(int semid, int semnum) {
 
 int msg_create(key_t key, int flags) {
 	if (key == -1)
-		ipc_die("ftok shm_key");
+		ipc_die("ftok msg_key");
 	int msgid = msgget(key, flags);
 	if (msgid == -1)
 		ipc_die("msgget");

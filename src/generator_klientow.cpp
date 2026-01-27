@@ -31,10 +31,6 @@ void sigchld_handler(int) {
 void handler(int sig) {
 	if (sig == SIGINT || sig == SIGRTMIN) {
 		fire_sig_flag = 1;
-		std::lock_guard<std::mutex> lock(pids_mutex);
-		for (auto pid: pids) {
-			kill(pid, SIGINT);
-		}
 	}
 }
 
@@ -121,6 +117,10 @@ int main() {
 				wyslij_log(msgid_logger, "Utworzono klienta: [" + std::to_string(pid) + "]", 4);
 			}
 		}
+	}
+
+	for (auto chpid: pids) {
+		kill(0, SIGINT);
 	}
 	stop_thread = true;
 	{
