@@ -75,3 +75,26 @@ Program posiada możliwości łatwego zmieniania warunków uruchomienia. Lista z
 
 ```SLEEP``` ([klient.cpp](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/src/klient.cpp#L16)) Decyduje o tym czy klient ma używać sleep podczas jedzenia. (podstawowo: sleep, w razie potrzeby zmienić na //sleep)
 
+## Struktura programu
+
+- ```mainprog``` program "rodzic". Tworzy wszystykie potrzebne struktury IPC. Tworzy programy potomne za pomocą ```fork()```. Tworzone programy: [```generator_klientow```](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/src/mainprog.cpp#L98), [```kasjer```](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/src/mainprog.cpp#L109), [```pracownik```](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/src/mainprog.cpp#L120) i [```logger```](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/src/mainprog.cpp#L131). Po zakończeniu symulacji usuwa utworzone wcześniej struktury IPC.
+
+- ```kasjer``` odpowiada za przyjmowanie zamówień od klientów oraz za przydzielanie ich do stolików. Po zakończeniu symulacji zamyka kasę oraz sprawdza utarg zyskany podczas symulacji.
+
+- ```pracownik``` odpowiada za wydawanie zamówień. Na polecenie ```kierownika``` może zarezerwować odpowiednią ilość stołów lub donieść dodatkowe stoliki 3-osobowe (czynność jednorazowa!)
+
+- ```generator_klientow``` odpowiada za generowanie klientów, oraz za asynchroniczne usuwanie procesów zombie.
+
+- ```logger``` odpowiada za wypisywanie logów wysyłanych przez inne programy w konsoli a także do pliku ```log.txt```.
+
+- ```kierownik``` zarządza restauracją. Umożliwia poprawne wydawanie sygnałów do programów potomnych ```mainprog```.
+
+## Opis plików
+
+- Folder ```include```:
+  - ```Shared_memory.h``` - zawiera zmienne zarządzające ilością klientów w lokalu oraz strukturę [```SharedMem```]([https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Shared_memory.h#L11](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Shared_memory.h#L8))
+ 
+  - ```Tables.h``` - zawiera zmienne zarządzające ilością tolików a także strukturę [```Table```](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Tables.h#L17)
+ 
+  - ```Wrappers.h``` - zawiera deklaracje wrapperów funkcji System V oraz struktury odpowiadające za [wysyłanie wiadomości do loggera](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Wrappers.h#L20) oraz za [rezerwację stolików i komunikację kierownik-pracownik](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Wrappers.h#L25-35) 
+
