@@ -42,7 +42,7 @@ Przy zamknięciu kasy kasjer liczy utarg z symulacji.
 #### Kompilacja projektu
 Będąc w głównym folderze projektu wpisać następujące komendy:
 ```
-mkdir buld
+mkdir build
 cd build
 cmake ..
 cmake --build .
