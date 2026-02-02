@@ -39,6 +39,8 @@ Przy zamknięciu kasy kasjer liczy utarg z symulacji.
 
 ## 2. Uruchomienie programu
 
+### ***UWAGA!*** Logger często z nieznanych względó przestaje wypisywać logi do konsoli przy zamykaniu programu (program wygląda jakby się zwiesił). ***Dla pełnych informacji proszę spojrzeć do pliku ```log.txt```.***
+
 #### Kompilacja projektu
 Będąc w głównym folderze projektu wpisać następujące komendy:
 ```
