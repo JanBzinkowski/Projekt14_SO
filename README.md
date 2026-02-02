@@ -386,21 +386,21 @@ W logach widać że przez 4 min pracy przy takim obciążeniu klientów program 
 
 --- 
 
-#### Test 2 - Test obciążenia procesora przy małym ruchu
+#### Test 2 - Test obciążenia procesora przy dużym ruchu
 Zmieniamy zmienne:
-```MAX_KLIENTOW``` - ([Shared_memory.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Shared_memory.h#L9)) zmiana na: ```50```
+```MAX_KLIENTOW``` - ([Shared_memory.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Shared_memory.h#L9)) zmiana na: ```10000```
 
-```MAX_KLIENTOW_W_RRESTAURACJI``` - ([Shared_memory.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Shared_memory.h#L9)) zmiana na: ```10```
+```MAX_KLIENTOW_W_RRESTAURACJI``` - ([Shared_memory.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Shared_memory.h#L9)) zmiana na: ```120```
 
-```X1``` ([Tables.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Tables.h#L7)) zmiana na: ```10```
+```X1``` ([Tables.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Tables.h#L7)) zmiana na: ```1```
 
-```X2``` ([Tables.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Tables.h#L8)) zmiana na: ```10```
+```X2``` ([Tables.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Tables.h#L8)) zmiana na: ```1```
 
-```X3``` ([Tables.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Tables.h#L9)) zmiana na: ```10```
+```X3``` ([Tables.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Tables.h#L9)) zmiana na: ```1```
 
-```X4``` ([Tables.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Tables.h#L10)) zmiana na: ```10```
+```X4``` ([Tables.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Tables.h#L10)) zmiana na: ```1```
 
-```CUSTOM_SLEEP_TIME``` ([klient.cpp](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/src/klient.cpp#L17)) zmiana na ```10```
+```CUSTOM_SLEEP_TIME``` ([klient.cpp](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/src/klient.cpp#L17)) zmiana na ```100```
 
 Test ten ma sprawdzać czy symulacja poprawnie się usypia (nie marnuje zasobów procesora) jeśli ruch jest mały.
 
@@ -408,28 +408,26 @@ Test ten ma sprawdzać czy symulacja poprawnie się usypia (nie marnuje zasobów
 <summary> top przy rególarnym użytkowaniu: (rozwiń aby zobaczyć)</summary>
 
 ```
-top - 13:29:19 up  4:42,  1 user,  load average: 0,75, 1,41, 4,23
-Zadania:razem: 356, działających:   1, śpiących: 353, zatrzymanych:   0, zombie:   2
-%CPU:  5,5 uż,  0,8 sy,  0,0 ni, 93,6 be,  0,1 io,  0,0 hi,  0,0 si,  0,0 sk
-MiB RAM :  15832,0 razem,   3350,4 wolne,   8335,1 użyte,   4146,5 buf/cache
-MiB Swap:   1950,0 razem,    325,5 wolne,   1624,5 użyte.   5944,0 dost. RAM 
+an-GL75-Leopard-9SCSR:~/CLionProjects/ProjektSO_Jan_Bzinkowski/bin$ top
+top - 15:29:01 up  1:58,  1 user,  load average: 1,23, 0,76, 0,97
+Zadania:razem: 344, działających:   1, śpiących: 341, zatrzymanych:   0, zombie:   2
+%CPU: 10,1 uż,  1,5 sy,  0,0 ni, 87,9 be,  0,4 io,  0,0 hi,  0,0 si,  0,0 sk
+MiB RAM :  15832,0 razem,   3465,7 wolne,   7019,4 użyte,   5346,8 buf/cache
+MiB Swap:   1950,0 razem,   1949,2 wolne,      0,8 użyte.   6960,7 dost. RAM 
 
-    PID UŻYTK.    PR  NI    WIRT    REZ    WSP S  %CPU  %PAM     CZAS+ KOMENDA
 ```
 </details>
 
 <details>
 
-<summary> top przy braku ruchu: (rozwiń aby zobaczyć)</summary>
+<summary> top przy dużym ruchu: (rozwiń aby zobaczyć)</summary>
 
 ```
-top - 13:28:04 up  4:41,  1 user,  load average: 1,94, 1,74, 4,56
-Zadania:razem: 412, działających:   1, śpiących: 409, zatrzymanych:   0, zombie:   2
-%CPU:  6,7 uż,  0,8 sy,  0,0 ni, 92,2 be,  0,2 io,  0,0 hi,  0,0 si,  0,0 sk
-MiB RAM :  15832,0 razem,   3297,8 wolne,   8397,9 użyte,   4136,3 buf/cache
-MiB Swap:   1950,0 razem,    325,2 wolne,   1624,8 użyte.   5890,1 dost. RAM 
-
-    PID UŻYTK.    PR  NI    WIRT    REZ    WSP S  %CPU  %PAM     CZAS+ KOMENDA  
+top - 15:30:19 up  1:31,  1 user,  load average: 1,94, 2,25, 1,78
+Zadania:razem: 10349, działających:   1, śpiących: 10346, zatrzymanych:   0, zombie:   2
+%CPU: 10,4 uż,  2,1 sy,  0,0 ni, 86,8 be,  0,2 io,  0,0 hi,  0,6 si,  0,0 sk
+MiB RAM :  15832,0 razem,    295,0 wolne,  10151,8 użyte,   5385,2 buf/cache
+MiB Swap:   1950,0 razem,   1949,2 wolne,      0,8 użyte.   3793,5 dost. RAM 
 ```
 </details>
 
