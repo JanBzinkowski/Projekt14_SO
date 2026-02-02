@@ -11,7 +11,7 @@
 int msgid;
 
 void handler(int sig) {
-	//puusty handler aby unikąć przerywania w działaniu programu
+	//pusty handler aby unikąć przerywania w działaniu programu
 }
 
 std::string timestamp() {
@@ -67,7 +67,7 @@ int main() {
 		}
 	}
 
-	std::cout << "Logger zakończony." << std::endl;
+	std::cerr << "Logger zakończony." << std::endl;
 	log_file << "Logger zakończony." << std::endl;
 	log_file.close();
 

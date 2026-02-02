@@ -12,6 +12,8 @@
 #include "../include/Tables.h"
 #include "../include/Wrappers.h"
 
+#define SLEEP std::this_thread::sleep_for
+
 int shmid, semid, semid_gk, semid_prac, msgid_zam, msgid_logger, table_sem_id;
 
 volatile sig_atomic_t exception_flag = 0;
@@ -179,7 +181,7 @@ int main() {
                 last_handle = clock::now();
                 continue;
             }
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            SLEEP(std::chrono::milliseconds(100));
             continue;
         }
         if (sem_op(semid, 1, -1, &exception_flag) == -1) {
