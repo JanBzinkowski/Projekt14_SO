@@ -73,9 +73,11 @@ Program posiada możliwości łatwego zmieniania warunków uruchomienia. Lista z
 
 ```MENU_NAPOJE``` ([Zamowienie.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Zamowienie.h#L10)) Liczba możliwych do wyboryu dań. Nr. dania mówi o tym ile będzie on kosztował i jaki czas zajmie klientowi spożywanie go (sekundy) (podstawowo: 4)
 
-```SLEEP``` ([klient.cpp](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/src/klient.cpp#L16)) Decyduje o tym czy klient ma używać sleep podczas jedzenia. (podstawowo: sleep, w razie potrzeby zmienić na //sleep)
+```SLEEP``` ([klient.cpp](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/src/klient.cpp#L16)) Decyduje o tym czy klient ma używać sleep podczas jedzenia. (podstawowo: ```sleep```, w razie potrzeby zmienić na ```//sleep```)
 
 ```CUSTOM_SLEEP_TIME``` ([klient.cpp](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/src/klient.cpp#L17)) Decyduje o czasie snu klientów. 0 jeśli chcemy używać podstawowych czasów wykonywania czynności przez klientów, > 0 jeśli chcemy ustawić własny czas. (podstawowo 0)
+
+```SLEEP```([kasher.cpp](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/src/klient.cpp#L15)) Decyduje o tym czy kasjer ma używać sleep podczas sprawdzania czasu od ostatniego zamówienia. (podstawowo: ```std::this_thread::sleep_for```, w razie potrzeby zmienić na ```//std::this_thread::sleep_for```)
 
 ## 3. Struktura programu
 
@@ -100,7 +102,7 @@ Program posiada możliwości łatwego zmieniania warunków uruchomienia. Lista z
  
   - ```Wrappers.h``` - zawiera deklaracje wrapperów funkcji System V oraz struktury odpowiadające za [wysyłanie wiadomości do loggera](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Wrappers.h#L20) oraz za [rezerwację stolików i komunikację kierownik-pracownik](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Wrappers.h#L25)
  
-  - ```Zamowienie.h``` - zawiera zmienne informujące o ilości pozycji w menu, a także struktury odpowiadające za [komunikację klient-kasjer-pracownik-klient](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Zamowienie.h#L12)
+  - ```Zamowienie.h``` - zawiera zmienne informujące o ilości pozycji w menu, a także struktury odpowiadające za [komunikację klient-r-pracownik-klient](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Zamowienie.h#L12)
  
 - Folder ```src```:
   - ```Tables.cpp``` - zawiera inicjalizację zmiennych [```table_count```](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/src/Tables.cpp#L3) oraz [```table_count_max```](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/src/Tables.cpp#L5).
@@ -109,7 +111,7 @@ Program posiada możliwości łatwego zmieniania warunków uruchomienia. Lista z
  
   - ```mainprog.cpp``` - zawiera kod programu ```mainprog```
  
-  - ```kasjer.cpp``` - zawiera kod programu ```kasjer```
+  - ```r.cpp``` - zawiera kod programu ```kasjer```
  
   - ```pracownik.cpp``` - zawiera kod programu ```pracownik```
    
@@ -124,7 +126,7 @@ Program posiada możliwości łatwego zmieniania warunków uruchomienia. Lista z
 
 ## 5. Pseudokody wybranych algorytmów
 
-#### [Algorytm przeszukiwania stolików](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/src/kasjer.cpp#L31):
+#### [Algorytm przeszukiwania stolików](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/src/kasjer.cpp#L33):
 ```
 FUNKCJA sprawdz_stolik(&index, table_array, zam, mem_flags)
 
@@ -319,19 +321,19 @@ KONIEC FUNKCJI
 #### Test 1 - 1000 klientów w lokalu, 1 stolik - 4-osobowy. 
 
 Zmieniamy zmiene:
-```MAX_KLIENTOW``` - ([Shared_memory.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Shared_memory.h#L9)) zmiana na: 10000
+```MAX_KLIENTOW``` - ([Shared_memory.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Shared_memory.h#L9)) zmiana na: ```10000```
 
-```MAX_KLIENTOW_W_RRESTAURACJI``` - ([Shared_memory.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Shared_memory.h#L9)) zmiana na: 1000
+```MAX_KLIENTOW_W_RRESTAURACJI``` - ([Shared_memory.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Shared_memory.h#L9)) zmiana na: ```1000```
 
-```X1``` ([Tables.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Tables.h#L7)) zmiana na: 0
+```X1``` ([Tables.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Tables.h#L7)) zmiana na: ```0```
 
-```X2``` ([Tables.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Tables.h#L8)) zmiana na: 0
+```X2``` ([Tables.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Tables.h#L8)) zmiana na: ```0```
 
-```X3``` ([Tables.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Tables.h#L9)) zmiana na: 0
+```X3``` ([Tables.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Tables.h#L9)) zmiana na: ```0```
 
-```X4``` ([Tables.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Tables.h#L10)) zmiana na: 1
+```X4``` ([Tables.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Tables.h#L10)) zmiana na: ```1```
 
-```CUSTOM_SLEEP_TIME``` ([klient.cpp](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/src/klient.cpp#L17)) zmiana na 0
+```CUSTOM_SLEEP_TIME``` ([klient.cpp](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/src/klient.cpp#L17)) zmiana na ```0```
 
 test ma na celu sprawdzenie poprawnego działania programu przy dużym obciążeniu.
 
@@ -386,19 +388,19 @@ W logach widać że przez 4 min pracy przy takim obciążeniu klientów program 
 
 #### Test 2 - Test obciążenia procesora przy małym ruchu
 Zmieniamy zmienne:
-```MAX_KLIENTOW``` - ([Shared_memory.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Shared_memory.h#L9)) zmiana na: 50
+```MAX_KLIENTOW``` - ([Shared_memory.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Shared_memory.h#L9)) zmiana na: ```50```
 
-```MAX_KLIENTOW_W_RRESTAURACJI``` - ([Shared_memory.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Shared_memory.h#L9)) zmiana na: 10
+```MAX_KLIENTOW_W_RRESTAURACJI``` - ([Shared_memory.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Shared_memory.h#L9)) zmiana na: ```10```
 
-```X1``` ([Tables.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Tables.h#L7)) zmiana na: 10
+```X1``` ([Tables.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Tables.h#L7)) zmiana na: ```10```
 
-```X2``` ([Tables.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Tables.h#L8)) zmiana na: 10
+```X2``` ([Tables.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Tables.h#L8)) zmiana na: ```10```
 
-```X3``` ([Tables.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Tables.h#L9)) zmiana na: 10
+```X3``` ([Tables.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Tables.h#L9)) zmiana na: ```10```
 
-```X4``` ([Tables.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Tables.h#L10)) zmiana na: 10
+```X4``` ([Tables.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Tables.h#L10)) zmiana na: ```10```
 
-```CUSTOM_SLEEP_TIME``` ([klient.cpp](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/src/klient.cpp#L17)) zmiana na 10
+```CUSTOM_SLEEP_TIME``` ([klient.cpp](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/src/klient.cpp#L17)) zmiana na ```10```
 
 Test ten ma sprawdzać czy symulacja poprawnie się usypia (nie marnuje zasobów procesora) jeśli ruch jest mały.
 
@@ -439,19 +441,19 @@ Jak widać przy braku ruchu zasoby cpu nie są nadmiernie zużywane. Wszystkie p
 
 #### Test 3 - Rezerwacja wszystkich dostępnych stolików w restauracji:
 Zmieniamy zmienne:
-```MAX_KLIENTOW``` - ([Shared_memory.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Shared_memory.h#L9)) zmiana na: 10000
+```MAX_KLIENTOW``` - ([Shared_memory.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Shared_memory.h#L9)) zmiana na: ```10000```
 
-```MAX_KLIENTOW_W_RRESTAURACJI``` - ([Shared_memory.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Shared_memory.h#L9)) zmiana na: 120
+```MAX_KLIENTOW_W_RRESTAURACJI``` - ([Shared_memory.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Shared_memory.h#L9)) zmiana na: ```120```
 
-```X1``` ([Tables.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Tables.h#L7)) zmiana na: 10
+```X1``` ([Tables.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Tables.h#L7)) zmiana na: ```10```
 
-```X2``` ([Tables.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Tables.h#L8)) zmiana na: 10
+```X2``` ([Tables.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Tables.h#L8)) zmiana na: ```10```
 
-```X3``` ([Tables.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Tables.h#L9)) zmiana na: 10
+```X3``` ([Tables.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Tables.h#L9)) zmiana na: ```10```
 
-```X4``` ([Tables.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Tables.h#L10)) zmiana na: 10
+```X4``` ([Tables.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Tables.h#L10)) zmiana na: ```10```
 
-```CUSTOM_SLEEP_TIME``` ([klient.cpp](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/src/klient.cpp#L17)) zmiana na 0
+```CUSTOM_SLEEP_TIME``` ([klient.cpp](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/src/klient.cpp#L17)) zmiana na ```0```
 
 Test ma na celu sprawdzenie poprawności działania rezerwacji stolików w lokalu. (Po zarezerwowaniu miejsc nie powinny się już pojawiać  wiadomości o przydzielaniu nowych klientów do stolika)
 
@@ -553,21 +555,23 @@ Jak widać Po rezerwacji stołu i skończeniu przez klientów którzy już tam s
 
 #### Test 4 - Klienci jedzą swoje dania natychmiastowo. (usunięcie sleep)
 Zmieniamy zmienne:
-```MAX_KLIENTOW``` - ([Shared_memory.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Shared_memory.h#L9)) zmiana na: 10000
+```MAX_KLIENTOW``` - ([Shared_memory.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Shared_memory.h#L9)) zmiana na: ```10000```
 
-```MAX_KLIENTOW_W_RRESTAURACJI``` - ([Shared_memory.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Shared_memory.h#L9)) zmiana na: 120
+```MAX_KLIENTOW_W_RRESTAURACJI``` - ([Shared_memory.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Shared_memory.h#L9)) zmiana na: ```120```
 
-```X1``` ([Tables.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Tables.h#L7)) zmiana na: 5
+```X1``` ([Tables.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Tables.h#L7)) zmiana na: ```5```
 
-```X2``` ([Tables.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Tables.h#L8)) zmiana na: 5
+```X2``` ([Tables.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Tables.h#L8)) zmiana na: ```5```
 
-```X3``` ([Tables.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Tables.h#L9)) zmiana na: 5
+```X3``` ([Tables.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Tables.h#L9)) zmiana na: ```5```
 
-```X4``` ([Tables.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Tables.h#L10)) zmiana na: 5
+```X4``` ([Tables.h](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/include/Tables.h#L10)) zmiana na: ```5```
 
-```CUSTOM_SLEEP_TIME``` ([klient.cpp](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/src/klient.cpp#L17)) zmiana na 0
+```CUSTOM_SLEEP_TIME``` ([klient.cpp](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/src/klient.cpp#L17)) zmiana na ```0```
 
-```SLEEP``` ([klient.cpp](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/src/klient.cpp#L16)) zmiana na //sleep
+```SLEEP``` ([klient.cpp](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/src/klient.cpp#L16)) zmiana na ```//sleep```
+
+```SLEEP```([kasher.cpp](https://github.com/JanBzinkowski/Projekt14_SO/blob/master/src/klient.cpp#L15)) zmiana na ```//std::this_thread::sleep_for```
 
 Test ma na celu udowodnienei iż funkcja ```sleep()``` nie jest traktowana jako mechanizm synchronizacji międzyprocesowej. 
 
@@ -576,35 +580,40 @@ Test ma na celu udowodnienei iż funkcja ```sleep()``` nie jest traktowana jako 
 
 ```
 Logger uruchomiony. Odbieranie wiadomości...
-[2026-01-27 14:36:44.942][mtype=1] Kasjer rozpoczyna prace
-[2026-01-27 14:36:44.942][mtype=3] Pracownik rozpoczyna prace
-[2026-01-27 14:36:44.942][mtype=4] Watek do czyszczenia procesow zombie uruchomiony.
-[2026-01-27 14:36:44.942][mtype=4] Utworzono klienta: [389438]
-[2026-01-27 14:36:44.942][mtype=4] Utworzono klienta: [389439]
-[2026-01-27 14:36:44.942][mtype=4] Utworzono klienta: [389440]
-[2026-01-27 14:36:44.942][mtype=4] Utworzono klienta: [389441]
+[2026-02-02 10:30:12.780][mtype=1] Kasjer rozpoczyna prace
+[2026-02-02 10:30:12.780][mtype=3] Pracownik rozpoczyna prace
+[2026-02-02 10:30:12.780][mtype=4] Utworzono klienta: [17951]
+[2026-02-02 10:30:12.780][mtype=4] Utworzono klienta: [17952]
+[2026-02-02 10:30:12.780][mtype=4] Utworzono klienta: [17953]
+[2026-02-02 10:30:12.780][mtype=4] Utworzono klienta: [17954]
+[2026-02-02 10:30:12.780][mtype=4] Utworzono klienta: [17955]
+[2026-02-02 10:30:12.780][mtype=4] Utworzono klienta: [17956]
+[2026-02-02 10:30:12.780][mtype=4] Utworzono klienta: [17957]
+[2026-02-02 10:30:12.780][mtype=4] Utworzono klienta: [17958]
+[2026-02-02 10:30:12.780][mtype=4] Utworzono klienta: [17959]
+[2026-02-02 10:30:12.780][mtype=4] Utworzono klienta: [17960]
+[2026-02-02 10:30:12.783][mtype=4] Utworzono klienta: [17961]
+[2026-02-02 10:30:12.783][mtype=1] Kasjer rozpoczyna obsluge klienta
 
 ...
 
-[2026-01-27 14:37:17.581][mtype=4] Zabito proces [481567]
-[2026-01-27 14:37:17.581][mtype=4] Zabito proces [481568]
-[2026-01-27 14:37:17.581][mtype=4] Zabito proces [481569]
-[2026-01-27 14:37:17.581][mtype=4] Zabito proces [481570]
-[2026-01-27 14:37:17.581][mtype=4] Zabito proces [481571]
-[2026-01-27 14:37:17.581][mtype=4] Zabito proces [481572]
-[2026-01-27 14:37:17.581][mtype=4] Zabito proces [481573]
-[2026-01-27 14:37:17.581][mtype=4] Zabito proces [481574]
-[2026-01-27 14:37:17.591][mtype=4] Watek do czyszczenia procesow zombie zakonczony.
-[2026-01-27 14:37:17.591][mtype=4] Klienci opuscili lokal, generator klientow konczy dzialanie
-[2026-01-27 14:37:17.591][mtype=5] Pracownik konczy prace
-[2026-01-27 14:37:17.591][mtype=5] Kasjer zamyka kase
-[2026-01-27 14:37:17.591][mtype=5] Dzisiejszy utarg to: 167918 zl
-[2026-01-27 14:37:17.591][mtype=5] Kasjer konczy prace
+[2026-02-02 10:30:33.966][mtype=4] Zabito proces [68673]
+[2026-02-02 10:30:33.966][mtype=4] Zabito proces [68682]
+[2026-02-02 10:30:33.966][mtype=4] Zabito proces [68693]
+[2026-02-02 10:30:33.966][mtype=4] Zabito proces [68701]
+[2026-02-02 10:30:33.966][mtype=4] Zabito proces [68707]
+[2026-02-02 10:30:33.966][mtype=4] Zabito proces [68715]
+[2026-02-02 10:30:33.971][mtype=4] Watek do czyszczenia procesow zombie zakonczony.
+[2026-02-02 10:30:33.971][mtype=4] Klienci opuscili lokal, generator klientow konczy dzialanie
+[2026-02-02 10:30:33.971][mtype=5] Kasjer zamyka kase
+[2026-02-02 10:30:33.971][mtype=5] Pracownik konczy prace
+[2026-02-02 10:30:33.971][mtype=5] Dzisiejszy utarg to: 83154 zl
+[2026-02-02 10:30:33.971][mtype=5] Kasjer konczy prace
 Logger zakończony.
 ```
 </details>
 
-Logi pokazują iż w krótkim czasie symulacji (ok 45s) wygenerowany został dochód: ```167918zł```. Oznacza to że po usunięciu funkcji sleep z programu pracownika symulacja znacznie przyspiesza oraz nie blokuje się (brak problemów z synchronizacją).
+Logi pokazują iż w krótkim czasie symulacji (ok 20s) wygenerowany został dochód: ```83154zl```. Oznacza to że po usunięciu funkcji sleep z programu pracownika symulacja znacznie przyspiesza oraz nie blokuje się (brak problemów z synchronizacją).
 
 ## 8. Elementy wyróżniające:
 - konsola w programie ```kierownik``` pozwalająca na obsługę sygnałów oraz rezerwację określonej, podanej w konsoli ilości stolików.
